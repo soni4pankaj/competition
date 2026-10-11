@@ -1,332 +1,652 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>State Bank Academy-Quiz</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
-      margin: 0;
-      padding: 20px;
-      color: #333;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      transition: background-color 0.3s ease;
-    }
-
-    /* DARK MODE FOR CONTAINER WHEN QUIZ ENDS */
-    .container.dark-theme {
-      background: rgba(0, 0, 0, 0.85);
-      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
-    }
-
-    h1, h2, h3 {
-      color: #007bff;
-      text-align: center;
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      font-size: 16px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
-      width: 100%;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
-    .room-section, .game-section {
-      margin-top: 20px;
-    }
-    #qrcode {
-      margin: 15px 0;
-      text-align: center;
-    }
-    .hidden {
-      display: none;
-    }
-    ul {
-      list-style-type: none;
-      padding: 0;
-    }
-    li {
-      background: #e9ecef;
-      margin: 5px 0;
-      padding: 8px 12px;
-      border-radius: 4px;
-    }
-
-    /* SCROLLABLE PARTICIPANT LIST STYLES */
-    .player-scroll-box {
-      max-height: 250px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      padding: 10px;
-      background-color: #fafafa;
-      margin: 15px 0;
-    }
-
-    #player-list li {
-      background-color: #e7f3ff;
-      border: 1px solid #b6d4fe;
-      color: #004085;
-      font-weight: bold;
-    }
-
-    /* Dark Scoreboard Styling */
-    .scoreboard-dark {
-      color: #ffffff;
-      padding: 10px;
-      border-radius: 8px;
-    }
-
-    .scoreboard-dark h2 {
-      color: #ffd700; /* Gold color title */
-    }
-
-/* Standard Score Item Spacing */
-#score-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-}
-
-    /* Trophy Image Style */
-    .trophy-icon {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-      vertical-align: middle;
-      margin-right: 10px;
-    }
-
-    /* Winner List Item Dark Theme */
-    .dark-score-item {
-      background: #1a1a1a !important;
-      color: #ffffff !important;
-      border: 1px solid #333 !important;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 15px !important;
-      margin-bottom: 8px;
-      font-size: 17px;
-    }
-
-    /* Background Fireworks Container */
-    .fireworks-bg {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: url('images/fireworks.gif') center center / cover no-repeat;
-      z-index: -1;
-      pointer-events: none;
-      display: none;
-    }
-
-    .fireworks-bg.active {
-      display: block;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NodeQuiz - Portal Authentication</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
 </head>
-<body>
-  <!-- Fireworks Background Overlay -->
-  <div id="fireworks-container" class="fireworks-bg"></div>
+<body class="min-h-screen bg-slate-950 text-slate-800 font-sans relative overflow-x-hidden selection:bg-purple-500 selection:text-white">
 
-  <div class="container" id="main-container">
-    <h1>Quiz Dashboard</h1>
+  <!-- Dynamic Background Gradients -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/30 rounded-full blur-3xl animate-pulse"></div>
+    <div class="absolute top-1/2 right-[-10rem] w-[30rem] h-[30rem] bg-indigo-600/20 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-20 left-1/3 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl"></div>
+  </div>
 
-    <!-- Room Creation Section -->
-    <div id="room-setup" class="room-section">
-      <button id="create-room-btn">Create Quiz Room</button>
+  <!-- Header Navigation Bar -->
+  <header id="main-header" class="hidden relative z-10 border-b border-white/10 bg-slate-900/60 backdrop-blur-xl sticky top-0">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white shadow-lg shadow-purple-500/30">
+          <i data-lucide="book-open" class="w-5 h-5"></i>
+        </div>
+        <span class="font-bold text-lg tracking-wide bg-gradient-to-r from-purple-200 via-indigo-200 to-white bg-clip-text text-transparent">
+          NodeQuiz <span class="text-xs px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-medium ml-1">Live Portal</span>
+        </span>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+          <div id="user-badge-icon" class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <i data-lucide="user" class="w-4 h-4"></i>
+          </div>
+          <div class="text-left pr-2">
+            <div id="header-user-name" class="text-xs font-semibold leading-tight text-slate-200">User Name</div>
+            <div id="header-user-role" class="text-[10px] text-slate-400 capitalize">Role</div>
+          </div>
+        </div>
+
+        <button id="logout-btn" class="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all duration-200" title="Log Out">
+          <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- LOGIN VIEW -->
+    <div id="view-login" class="min-h-[80vh] flex flex-col justify-center items-center py-12">
+      <div class="w-full max-w-md relative">
+        <div class="relative rounded-3xl p-8 bg-slate-900/40 backdrop-blur-2xl border border-white/15 shadow-2xl shadow-indigo-950/50 overflow-hidden">
+          <div class="absolute -top-24 -left-24 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div class="text-center mb-8">
+            <div class="inline-flex p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-500/20 border border-white/10 mb-3 shadow-inner">
+              <i data-lucide="lock" class="w-8 h-8 text-purple-400"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Portal Authentication</h1>
+            <p class="text-xs text-slate-400 mt-1">Node.js MCQ Exam Platform Access Control</p>
+          </div>
+
+          <div id="login-error" class="hidden mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-2 text-xs text-rose-300">
+            <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>
+            <span id="login-error-text">Error message</span>
+          </div>
+
+          <form id="login-form" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5 ml-1">Username</label>
+              <div class="relative">
+                <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                <input id="input-username" type="text" required placeholder="e.g. admin or teacher1" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1.5 ml-1">Password</label>
+              <div class="relative">
+                <i data-lucide="key" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                <input id="input-password" type="password" required placeholder="••••••••" class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all" />
+              </div>
+            </div>
+
+            <button type="submit" id="submit-login-btn" class="w-full mt-2 py-3 px-4 rounded-xl font-medium text-sm text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 shadow-lg shadow-purple-600/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+              <span>Sign In to Dashboard</span>
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </form>
+
+          <div class="mt-8 pt-6 border-t border-white/10 text-center">
+            <p class="text-[11px] text-slate-400 mb-3 uppercase tracking-wider font-semibold">Fast Demo Access</p>
+            <div class="grid grid-cols-2 gap-3">
+              <button type="button" id="demo-admin-btn" class="p-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-xs text-amber-300 font-medium transition-all text-left flex items-center justify-between group">
+                <div>
+                  <div class="font-semibold text-slate-200">Admin Role</div>
+                  <div class="text-[10px] text-amber-400/70">admin / admin123</div>
+                </div>
+                <i data-lucide="shield" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+              </button>
+
+              <button type="button" id="demo-user-btn" class="p-2.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-xs text-purple-300 font-medium transition-all text-left flex items-center justify-between group">
+                <div>
+                  <div class="font-semibold text-slate-200">Student Role</div>
+                  <div class="text-[10px] text-purple-400/70">user1 / user123</div>
+                </div>
+                <i data-lucide="user" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Active Room Display -->
-    <div id="room-view" class="room-section hidden">
-      <h2>Room ID: <span id="display-room-id"></span></h2>
-      <p style="text-align: center;">Scan the QR code below to join as a participant:</p>
-      <div id="qrcode"></div>
-      
-      <!-- Connected Players Scroll Container -->
-      <h3>Joined Participants (<span id="player-count">0</span>)</h3>
-      <div class="player-scroll-box">
-        <ul id="player-list">
-          <li>Waiting for players to join...</li>
-        </ul>
+    <!-- ADMIN DASHBOARD VIEW -->
+    <div id="view-admin" class="hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
+        <div>
+          <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+            <i data-lucide="shield" class="w-6 h-6 text-amber-400"></i>
+            Admin Console & Platform Manager
+          </h1>
+          <p class="text-xs text-slate-400 mt-1">
+            Manage user accounts, modify credentials, and assign topics to teachers and students.
+          </p>
+        </div>
       </div>
 
-      <button id="next-question-btn">Start / Next Question</button>
+      <!-- Create User Section -->
+      <div class="bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
+        <h2 class="text-lg font-semibold text-white mb-4">Create New User & Assign Topics</h2>
+        <form id="createUserForm" class="grid grid-cols-1 sm:grid-cols-5 gap-4">
+          <input type="text" id="new-username" placeholder="Username" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          <input type="password" id="new-password" placeholder="Password" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          <select id="new-role" class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="user">Student (User)</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+          <input type="text" id="new-assignedTopics" placeholder="Topics (comma separated)" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">Add User</button>
+        </form>
+      </div>
+
+      <!-- Users Table -->
+      <div class="rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-xl overflow-hidden">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-white/10 bg-white/5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <th class="px-4 py-3">Username</th>
+              <th class="px-4 py-3">Role</th>
+              <th class="px-4 py-3">Assigned Topics</th>
+              <th class="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Live Game Controls & Display Section -->
-    <div id="game-section" class="game-section hidden">
-      
-      <!-- Question Container -->
-      <div id="question-box">
-        <h3 id="question-title">Questioning...</h3>
-        <p style="text-align: right;"><strong>Timer:</strong> <span id="timer-display">15</span>s</p>
-        <ul id="options-list"></ul>
-        <button id="show-leaderboard-btn">Display Score / Leaderboard</button>
+    <!-- TEACHER DASHBOARD VIEW -->
+    <div id="view-teacher" class="hidden space-y-6">
+      <div class="bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+            <i data-lucide="book-open" class="w-6 h-6 text-purple-400"></i>
+            Teacher Dashboard & Quiz Host
+          </h1>
+          <p class="text-xs text-slate-400 mt-1">Host a live quiz session for your students using your assigned topics.</p>
+        </div>
       </div>
 
-      <!-- Scoreboard Container -->
-      <div id="scoreboard-box" class="hidden">
-        <h2>Scoreboard</h2>
-        <ul id="score-list"></ul>
-        <button id="next-from-score-btn">Next Question</button>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Room Configuration -->
+        <div class="bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl space-y-4">
+          <h2 class="text-lg font-semibold text-white">Configure Quiz Session</h2>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Select Topic</label>
+            <select id="teacher-topic-select" class="w-full px-4 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <!-- Dynamically populated from teacher's assignedTopics -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Quiz Mode</label>
+            <select id="teacher-mode-select" class="w-full px-4 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="rapid">Rapid-Fire Mode (20s per question + 5s break)</option>
+              <option value="paper">Paper Style Mode (All questions at once with timer)</option>
+            </select>
+          </div>
+          <button id="create-room-btn" class="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">
+            Generate QR Code Lobby
+          </button>
+        </div>
+
+        <!-- QR Lobby & Connected Students -->
+        <div id="teacher-lobby-card" class="hidden bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl flex flex-col items-center justify-center text-center space-y-4">
+          
+          <!-- QR Code Section (Hides when quiz starts) -->
+          <div id="qr-code-section" class="space-y-3 w-full flex flex-col items-center">
+            <h2 class="text-lg font-semibold text-white">Student Lobby QR Code</h2>
+            <p class="text-xs text-slate-400">Students scan this code to join your room:</p>
+            <div class="p-3 bg-white rounded-2xl shadow-xl">
+              <img id="lobby-qr-img" src="" alt="Room QR Code" class="w-36 h-36 object-contain">
+            </div>
+          </div>
+
+          <!-- Lobby Stats & Controls (Stays visible) -->
+          <div class="w-full space-y-3 pt-2 border-t border-white/10">
+            <div class="text-xs text-purple-300 font-medium">
+              Joined Students: <span id="lobby-student-count" class="font-bold text-white">0</span>
+            </div>
+            <ul id="lobby-student-list" class="text-xs text-slate-300 flex flex-wrap gap-2 justify-center max-h-20 overflow-y-auto"></ul>
+            <button id="start-quiz-session-btn" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition-all">
+              Start Quiz for All Students
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- PARTICIPANT QUIZ VIEW -->
+    <div id="view-participant" class="hidden space-y-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
+        <div>
+          <h1 id="quiz-category-title" class="text-2xl font-bold text-white mb-1">Assigned Quiz</h1>
+          <p class="text-xs text-slate-400">Answer the category-filtered questions assigned to your account.</p>
+        </div>
+        <!-- Live Timer Badge -->
+        <div class="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>Time Remaining: <span id="time-remaining" class="font-mono font-bold">02:00</span></span>
+        </div>
       </div>
 
+      <div id="quiz-container" class="space-y-4 max-w-2xl mx-auto">
+        <!-- Dynamically loaded questions -->
+      </div>
+
+      <!-- Result Card (Hidden by default) -->
+      <div id="quiz-result-card" class="hidden max-w-2xl mx-auto p-8 rounded-3xl border border-purple-500/30 bg-slate-900/80 backdrop-blur-xl text-center space-y-4 shadow-2xl">
+        <div class="inline-flex p-3 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30">
+          <i data-lucide="award" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-xl font-bold text-white">Quiz Completed!</h2>
+        <p id="quiz-score-text" class="text-sm text-slate-300">You scored X out of Y</p>
+        <button onclick="window.location.reload()" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-all">Log Out / Try Again</button>
+      </div>
+
+      <div id="submit-btn-container" class="text-center pb-8">
+        <button id="submit-quiz-btn" class="px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">Submit Answers</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Edit User Modal -->
+  <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+    <div class="bg-slate-900 border border-white/15 p-6 rounded-3xl w-full max-w-md shadow-2xl relative">
+      <h2 class="text-lg font-semibold text-white mb-4">Edit User Account</h2>
+      <form id="editUserForm" class="space-y-4">
+        <input type="hidden" id="edit-user-id">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Username</label>
+          <input type="text" id="edit-username" required class="w-full px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">New Password (leave blank to keep current)</label>
+          <input type="password" id="edit-password" placeholder="••••••••" class="w-full px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Role</label>
+          <select id="edit-role" class="w-full px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option value="user">Student (User)</option>
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Assigned Topics (comma separated)</label>
+          <input type="text" id="edit-assignedTopics" required class="w-full px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+          <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-all">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-semibold hover:bg-purple-500 transition-all">Save Changes</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Socket.io Client Script -->
-  <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
-
+    let socket = io();
+    let loadedQuestions = [];
+    let timerInterval = null;
     let currentRoomId = null;
 
-    const createRoomBtn = document.getElementById('create-room-btn');
-    const roomSetup = document.getElementById('room-setup');
-    const roomView = document.getElementById('room-view');
-    const displayRoomId = document.getElementById('display-room-id');
-    const qrcodeContainer = document.getElementById('qrcode');
-    const playerList = document.getElementById('player-list');
-    const playerCount = document.getElementById('player-count');
-    
-    const nextQuestionBtn = document.getElementById('next-question-btn');
-    const nextFromScoreBtn = document.getElementById('next-from-score-btn');
-    const gameSection = document.getElementById('game-section');
-    const questionBox = document.getElementById('question-box');
-    const scoreboardBox = document.getElementById('scoreboard-box');
-    const mainContainer = document.getElementById('main-container');
-    
-    const questionTitle = document.getElementById('question-title');
-    const timerDisplay = document.getElementById('timer-display');
-    const optionsList = document.getElementById('options-list');
-    const scoreList = document.getElementById('score-list');
-    const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
 
-    // Helper function to get trophy icon HTML based on rank
-    function getTrophyIcon(rank) {
-      if (rank === 1) return `<img src="images/rank-1.png" alt="1st Place" class="trophy-icon">`;
-      if (rank === 2) return `<img src="images/rank-2.png" alt="2nd Place" class="trophy-icon">`;
-      if (rank === 3) return `<img src="images/rank-3.png" alt="3rd Place" class="trophy-icon">`;
-      return '';
-    }
+      const loginForm = document.getElementById('login-form');
+      const usernameInput = document.getElementById('input-username');
+      const passwordInput = document.getElementById('input-password');
+      const errorBox = document.getElementById('login-error');
+      const errorText = document.getElementById('login-error-text');
 
-// Render leaderboard function with clean spacing
-function renderLeaderboard(leaderboard, isFinal = false) {
-  scoreList.innerHTML = leaderboard.map((p, index) => {
-    const rank = index + 1;
-    const trophy = getTrophyIcon(rank);
-    return `
-      <li class="${isFinal ? 'dark-score-item' : ''}" style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="display: inline-flex; align-items: center; gap: 8px;">
-          ${trophy} Rank ${rank}: ${p.name}
-        </span>
-        <strong style="margin-left: 20px;">${p.score} pts</strong>
-      </li>
-    `;
-  }).join('');
-}
-    createRoomBtn.addEventListener('click', () => {
-      currentRoomId = 'room_' + Math.floor(Math.random() * 9000 + 1000);
-      socket.emit('create_room', currentRoomId);
-    });
+      // Fast Demo Buttons
+      document.getElementById('demo-admin-btn').addEventListener('click', () => {
+        usernameInput.value = 'admin';
+        passwordInput.value = 'admin123';
+      });
 
-    socket.on('room_created', ({ roomId, qrCode }) => {
-      roomSetup.classList.add('hidden');
-      roomView.classList.remove('hidden');
-      displayRoomId.textContent = roomId;
-      qrcodeContainer.innerHTML = `<img src="${qrCode}" alt="Join QR Code" style="max-width:200px;">`;
-    });
+      document.getElementById('demo-user-btn').addEventListener('click', () => {
+        usernameInput.value = 'user1';
+        passwordInput.value = 'user123';
+      });
 
-    socket.on('player_list_update', (players) => {
-      playerCount.textContent = players.length;
-      if (players.length === 0) {
-        playerList.innerHTML = '<li>Waiting for players to join...</li>';
-        return;
+      // Handle Login Submission
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorBox.classList.add('hidden');
+
+        try {
+          const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: usernameInput.value.trim(),
+              password: passwordInput.value.trim()
+            })
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            localStorage.setItem('currentUser', JSON.stringify(data.user));
+
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('main-header').classList.remove('hidden');
+
+            document.getElementById('header-user-name').textContent = data.user.username;
+            document.getElementById('header-user-role').textContent = data.user.role;
+
+            if (data.user.role === 'admin') {
+              document.getElementById('view-admin').classList.remove('hidden');
+              loadAdminUsers();
+            } else if (data.user.role === 'teacher') {
+              document.getElementById('view-teacher').classList.remove('hidden');
+              initTeacherDashboard(data.user);
+            } else {
+              document.getElementById('view-participant').classList.remove('hidden');
+              const topics = data.user.assignedTopics || ['default'];
+              loadParticipantQuiz(topics[0]);
+            }
+          } else {
+            errorText.textContent = data.message || 'Invalid login details';
+            errorBox.classList.remove('hidden');
+          }
+        } catch (err) {
+          errorText.textContent = 'Server connection error';
+          errorBox.classList.remove('hidden');
+        }
+      });
+
+      // Logout Handler
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        localStorage.removeItem('currentUser');
+        window.location.reload();
+      });
+
+      // Fetch and render users for Admin
+      window.loadAdminUsers = async function() {
+        try {
+          const res = await fetch('/api/admin/users');
+          const data = await res.json();
+          if (data.success) {
+            const tbody = document.getElementById('userTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            data.users.forEach(user => {
+              const topicsStr = Array.isArray(user.assignedTopics) ? user.assignedTopics.join(', ') : (user.assignedQuiz || 'default');
+              tbody.innerHTML += `
+                <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                  <td class="px-4 py-3 text-xs text-slate-200">${user.username}</td>
+                  <td class="px-4 py-3 text-xs text-slate-300 capitalize">${user.role}</td>
+                  <td class="px-4 py-3 text-xs text-purple-300">${topicsStr}</td>
+                  <td class="px-4 py-3 text-xs text-right space-x-2">
+                    <button onclick="openEditModal('${user._id}', '${user.username}', '${user.role}', '${topicsStr}')" class="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-all">Edit</button>
+                    <button onclick="deleteUser('${user._id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all">Delete</button>
+                  </td>
+                </tr>
+              `;
+            });
+          }
+        } catch (err) {
+          console.error('Failed to load users:', err);
+        }
+      };
+
+      // Teacher Dashboard Initialization
+      function initTeacherDashboard(user) {
+        const topicSelect = document.getElementById('teacher-topic-select');
+        topicSelect.innerHTML = '';
+        const topics = user.assignedTopics && user.assignedTopics.length > 0 ? user.assignedTopics : ['default'];
+        topics.forEach(topic => {
+          topicSelect.innerHTML += `<option value="${topic}">${topic}</option>`;
+        });
+
+        document.getElementById('create-room-btn').addEventListener('click', () => {
+          const selectedTopic = topicSelect.value;
+          const selectedMode = document.getElementById('teacher-mode-select').value;
+          currentRoomId = 'room_' + Math.random().toString(36).substring(2, 8);
+
+          // Reset UI elements so a fresh lobby and QR code display properly even after a previous quiz ended
+          document.getElementById('teacher-lobby-card').classList.remove('hidden');
+          document.getElementById('qr-code-section').classList.remove('hidden');
+          document.getElementById('start-quiz-session-btn').classList.remove('hidden');
+          document.getElementById('lobby-qr-img').src = '';
+          document.getElementById('lobby-student-count').textContent = '0';
+          document.getElementById('lobby-student-list').innerHTML = '';
+
+          socket.emit('create_teacher_room', { roomId: currentRoomId, category: selectedTopic, mode: selectedMode });
+        });
       }
-      playerList.innerHTML = players.map((p, index) => `
-        <li>👤 ${index + 1}. ${p.name}</li>
-      `).join('');
-    });
 
-    nextQuestionBtn.addEventListener('click', () => {
-      roomView.classList.add('hidden');
-      gameSection.classList.remove('hidden');
-      socket.emit('next_question', currentRoomId);
-    });
+      socket.on('room_ready', ({ qrCode, roomId }) => {
+        document.getElementById('lobby-qr-img').src = qrCode;
+        document.getElementById('teacher-lobby-card').classList.remove('hidden');
+      });
 
-    nextFromScoreBtn.addEventListener('click', () => {
-      scoreboardBox.classList.add('hidden');
-      questionBox.classList.remove('hidden');
-      socket.emit('next_question', currentRoomId);
-    });
+      socket.on('lobby_update', ({ players }) => {
+        document.getElementById('lobby-student-count').textContent = players.length;
+        const list = document.getElementById('lobby-student-list');
+        list.innerHTML = '';
+        
+        // Sort players descending by score (topper first)
+        const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
 
-    socket.on('display_question', (data) => {
-      scoreboardBox.classList.add('hidden');
-      questionBox.classList.remove('hidden');
-      questionTitle.textContent = `Q${data.questionNumber}: ${data.question}`;
-      optionsList.innerHTML = data.options.map((opt, index) => `<li>${index + 1}. ${opt}</li>`).join('');
-    });
+        sortedPlayers.forEach((p, index) => {
+          list.innerHTML += `
+            <li class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-200">
+              <span class="font-semibold">#${index + 1} ${p.name}</span>
+              <span class="font-bold text-white">${p.score} pts</span>
+            </li>
+          `;
+        });
+      });
 
-    socket.on('timer_tick', (timeLeft) => {
-      timerDisplay.textContent = timeLeft;
-    });
+      document.getElementById('start-quiz-session-btn').addEventListener('click', () => {
+        if (currentRoomId) {
+          socket.emit('start_teacher_quiz', currentRoomId);
+          
+          // Hide ONLY the QR code section, keeping the student list and scoreboard/lobby stats visible
+          const qrSection = document.getElementById('qr-code-section');
+          if (qrSection) qrSection.classList.add('hidden');
 
-    showLeaderboardBtn.addEventListener('click', () => {
-      socket.emit('show_leaderboard', currentRoomId);
-    });
+          // Hide the Start Quiz button once the quiz has begun
+          const startBtn = document.getElementById('start-quiz-session-btn');
+          if (startBtn) startBtn.classList.add('hidden');
+        }
+      });
 
-    socket.on('leaderboard_data', (leaderboard) => {
-      questionBox.classList.add('hidden');
-      scoreboardBox.classList.remove('hidden');
-      renderLeaderboard(leaderboard, false);
-    });
+      // Timer Countdown Function
+      function startQuizTimer(durationInSeconds) {
+        let timer = durationInSeconds;
+        const timerDisplay = document.getElementById('time-remaining');
+        
+        if (timerInterval) clearInterval(timerInterval);
 
-    // Quiz Ended Handler
-    socket.on('quiz_ended', (finalLeaderboard) => {
-      questionBox.classList.add('hidden');
-      scoreboardBox.classList.remove('hidden');
-   
-// Hide the "Quiz Dashboard" main heading
-  const mainTitle = document.querySelector('#main-container h1');
-  if (mainTitle) {
-    mainTitle.style.display = 'none';
-  }
-   
-      // Activate Fireworks and Dark Modes
-      const fireworksBg = document.getElementById('fireworks-container');
-      if (fireworksBg) {
-        fireworksBg.classList.add('active');
+        timerInterval = setInterval(() => {
+          let minutes = Math.floor(timer / 60);
+          let seconds = timer % 60;
+
+          minutes = minutes < 10 ? '0' + minutes : minutes;
+          seconds = seconds < 10 ? '0' + seconds : seconds;
+
+          timerDisplay.textContent = `${minutes}:${seconds}`;
+
+          if (--timer < 0) {
+            clearInterval(timerInterval);
+            alert('Time is up! Submitting your quiz automatically.');
+            submitQuiz();
+          }
+        }, 1000);
       }
 
-      mainContainer.classList.add('dark-theme');
-      scoreboardBox.classList.add('scoreboard-dark');
-      
-      document.querySelector('#scoreboard-box h2').textContent = "🏆 Quiz Finished! Final Leaderboard 🏆";
+      // Load Participant Quiz based on Assigned Category
+      async function loadParticipantQuiz(category) {
+        try {
+          const res = await fetch(`/api/questions?category=${category}`);
+          const data = await res.json();
+          
+          loadedQuestions = data.questions || [];
+          document.getElementById('quiz-category-title').textContent = `Assigned Category: ${data.category.toUpperCase()}`;
+          const container = document.getElementById('quiz-container');
+          container.innerHTML = '';
 
-      // Render dark list items with rank 1-3 PNG images
-      renderLeaderboard(finalLeaderboard, true);
-      
-      nextFromScoreBtn.style.display = 'none';
+          if (loadedQuestions.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No questions found for this category.</p>`;
+            document.getElementById('submit-btn-container').classList.add('hidden');
+            return;
+          }
+
+          loadedQuestions.forEach((q, index) => {
+            let optionsHtml = q.options.map((opt, optIdx) => `
+              <label class="block p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-purple-500/50 cursor-pointer text-xs text-slate-200 transition-all">
+                <input type="radio" name="question-${index}" value="${optIdx}" class="mr-2 accent-purple-500">
+                ${opt}
+              </label>
+            `).join('');
+
+            container.innerHTML += `
+              <div class="p-6 rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-xl space-y-3">
+                <h3 class="text-sm font-semibold text-white">Q${index + 1}. ${q.question}</h3>
+                <div class="space-y-2">${optionsHtml}</div>
+              </div>
+            `;
+          });
+
+          startQuizTimer(120);
+
+        } catch (err) {
+          console.error('Failed to load quiz questions:', err);
+        }
+      }
+
+      // Reusable Quiz Submission & Scoring Function
+      window.submitQuiz = function() {
+        if (timerInterval) clearInterval(timerInterval);
+
+        let score = 0;
+        let total = loadedQuestions.length;
+
+        loadedQuestions.forEach((q, index) => {
+          const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
+          if (selectedOption) {
+            const selectedVal = parseInt(selectedOption.value);
+            if (selectedVal === q.answer) {
+              score++;
+            }
+          }
+        });
+
+        document.getElementById('quiz-container').classList.add('hidden');
+        document.getElementById('submit-btn-container').classList.add('hidden');
+        
+        document.getElementById('quiz-score-text').textContent = `You scored ${score} out of ${total} correct!`;
+        document.getElementById('quiz-result-card').classList.remove('hidden');
+        
+        lucide.createIcons();
+      };
+
+      document.getElementById('submit-quiz-btn').addEventListener('click', submitQuiz);
+
+      // Create New User Handler
+      document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('new-username').value.trim();
+        const password = document.getElementById('new-password').value.trim();
+        const role = document.getElementById('new-role').value;
+        const assignedTopics = document.getElementById('new-assignedTopics').value.trim();
+
+        try {
+          const res = await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, role, assignedTopics })
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert('User created successfully!');
+            document.getElementById('createUserForm').reset();
+            loadAdminUsers();
+          } else {
+            alert(data.message);
+          }
+        } catch (err) {
+          alert('Error creating user.');
+        }
+      });
+
+      // Delete User Handler
+      window.deleteUser = async function(id) {
+        if (!confirm('Are you sure you want to delete this user?')) return;
+        try {
+          const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+          const data = await res.json();
+          if (data.success) {
+            loadAdminUsers();
+          } else {
+            alert(data.message);
+          }
+        } catch (err) {
+          alert('Error deleting user.');
+        }
+      };
+
+      // Edit Modal Controllers
+      window.openEditModal = function(id, username, role, assignedTopics) {
+        document.getElementById('edit-user-id').value = id;
+        document.getElementById('edit-username').value = username;
+        document.getElementById('edit-password').value = '';
+        document.getElementById('edit-role').value = role;
+        document.getElementById('edit-assignedTopics').value = assignedTopics;
+        document.getElementById('editModal').classList.remove('hidden');
+      };
+
+      window.closeEditModal = function() {
+        document.getElementById('editModal').classList.add('hidden');
+      };
+
+      // Edit User Form Submission Handler
+      document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-user-id').value;
+        const username = document.getElementById('edit-username').value.trim();
+        const password = document.getElementById('edit-password').value.trim();
+        const role = document.getElementById('edit-role').value;
+        const assignedTopics = document.getElementById('edit-assignedTopics').value.trim();
+
+        try {
+          const res = await fetch(`/api/admin/users/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, role, assignedTopics })
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert('User updated successfully!');
+            closeEditModal();
+            loadAdminUsers();
+          } else {
+            alert(data.message);
+          }
+        } catch (err) {
+          alert('Error updating user.');
+        }
+      });
     });
   </script>
 </body>

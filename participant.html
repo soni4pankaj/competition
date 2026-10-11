@@ -84,37 +84,36 @@
       margin-bottom: 15px;
     }
 
-	/* Rules Container Styling */
-	.rules-card {
-	  background-color: #fff3cd; /* Soft yellow alert background */
-	  border: 1px solid #ffeeba;
-	  color: #856404;
-	  padding: 15px 20px;
-	  border-radius: 6px;
-	  margin-top: 20px;
-	}
+    /* Rules Container Styling */
+    .rules-card {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      color: #856404;
+      padding: 15px 20px;
+      border-radius: 6px;
+      margin-top: 20px;
+    }
 
-	.rules-card h3 {
-	  margin-top: 0;
-	  margin-bottom: 10px;
-	  color: #856404;
-	  font-size: 16px;
-	  text-align: left;
-	}
+    .rules-card h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      color: #856404;
+      font-size: 16px;
+      text-align: left;
+    }
 
-	.rules-card ol {
-	  margin: 0;
-	  padding-left: 20px;
-	}
+    .rules-card ol {
+      margin: 0;
+      padding-left: 20px;
+    }
 
-	.rules-card li {
-	  background: transparent !important; /* Override default white li background */
-	  padding: 4px 0 !important;
-	  margin: 2px 0 !important;
-	  font-size: 14px;
-	  line-height: 1.4;
-	}
-
+    .rules-card li {
+      background: transparent !important;
+      padding: 4px 0 !important;
+      margin: 2px 0 !important;
+      font-size: 14px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -122,29 +121,30 @@
   <div class="container">
     <h1>State Bank Academy</h1>
 
-	<!-- 1. Join Room Form -->
-	<div id="join-box">
-	  <h2>Join Quiz</h2>
-	  <input type="text" id="room-input" placeholder="Enter Room ID" class="hidden" />
-	  <input type="text" id="name-input" placeholder="Enter Your Name" autofocus />
-	  <button id="join-btn">Register</button>
-	  <p id="error-msg" style="color: red; text-align: center;"></p>
+    <!-- 1. Join Room Form -->
+    <div id="join-box">
+      <h2>Join Quiz</h2>
+      <!-- Room input is hidden from participants as requested -->
+      <input type="text" id="room-input" placeholder="Enter Room ID" class="hidden" />
+      <input type="text" id="name-input" placeholder="Enter Your Name" autofocus />
+      <button id="join-btn">Register</button>
+      <p id="error-msg" style="color: red; text-align: center;"></p>
 
-	  <!-- Quiz Rules Box -->
-	  <div class="rules-card">
-		<h3>📋 Quiz Instructions & Rules</h3>
-		<ol>
-		  <li>Connect to the Wifi</li>
-		  <li>Enter your full name</li>
-		  <li>Time allotted to answer the question is max 15 seconds</li>
-		  <li>Full score i.e. 15 marks awarded if correct answer in 5 seconds</li>
-		  <li>Score 10 is awarded if correct answer in 10 seconds</li>
-		  <li>Score 5 is awarded if correct answer in 15 seconds</li>
-		  <li>Negative score of 5 for each wrong answer</li>
-		  <li>There are 15 questions in the quiz</li>
-		</ol>
-	  </div>
-	</div>
+      <!-- Quiz Rules Box -->
+      <div class="rules-card">
+        <h3>📋 Quiz Instructions & Rules</h3>
+        <ol>
+          <li>Connect to the Wifi</li>
+          <li>Enter your full name</li>
+          <li>Time allotted to answer the question is max 15 seconds</li>
+          <li>Full score i.e. 15 marks awarded if correct answer in 5 seconds</li>
+          <li>Score 10 is awarded if correct answer in 10 seconds</li>
+          <li>Score 5 is awarded if correct answer in 15 seconds</li>
+          <li>Negative score of 5 for each wrong answer</li>
+          <li>There are 15 questions in the quiz</li>
+        </ol>
+      </div>
+    </div>
 
     <!-- 2. Waiting Screen -->
     <div id="waiting-box" class="hidden">
@@ -161,31 +161,28 @@
     </div>
 
     <!-- 4. Scoreboard / Leaderboard View -->
-	<!-- Inside #scoreboard-box in participant.html -->
-	<div id="scoreboard-box" class="hidden">
-	  <h2 id="scoreboard-title">Leaderboard</h2>
-	  
-	  <div class="my-stats">
-		<p><strong>Your Score:</strong> <span id="my-score">0</span> pts</p>
-		<p><strong>Round Time:</strong> <span id="my-round-time">N/A</span>s</p>
-		<p><strong>Total Time:</strong> <span id="my-total-time">0</span>s</p>
-	<!--	<p style="text-align: right;"><strong>Time Left To Load Next question:</strong> <span id="timer-display">15</span>s</p>-->
-	  </div>
+    <div id="scoreboard-box" class="hidden">
+      <h2 id="scoreboard-title">Leaderboard</h2>
+      
+      <div class="my-stats">
+        <p><strong>Your Score:</strong> <span id="my-score">0</span> pts</p>
+        <p><strong>Round Time:</strong> <span id="my-round-time">N/A</span>s</p>
+        <p><strong>Total Time:</strong> <span id="my-total-time">0</span>s</p>
+      </div>
 
-	  <ul id="score-list"></ul>
+      <ul id="score-list"></ul>
 
-	  <!-- Manual mode waiting notice -->
-	  <div id="manual-wait-notice" class="hidden" style="text-align: center; margin-top: 15px;">
-		<p class="status-msg">⏳ Wait for the host to load the next question...</p>
-	  </div>
-	</div>
-	
-	<!-- Final Game Over Container (Hidden by default) -->
-	<div id="game-over-box" class="hidden" style="text-align: center;">
-	  <h2>🎉 Quiz Completed! 🎉</h2>
-	  <p>Thank you for participating!</p>
-	  <div id="final-score-display"></div>
-	</div>
+      <div id="manual-wait-notice" class="hidden" style="text-align: center; margin-top: 15px;">
+        <p class="status-msg">⏳ Wait for the host to load the next question...</p>
+      </div>
+    </div>
+    
+    <!-- Final Game Over Container -->
+    <div id="game-over-box" class="hidden" style="text-align: center;">
+      <h2>🎉 Quiz Completed! 🎉</h2>
+      <p>Thank you for participating!</p>
+      <div id="final-score-display"></div>
+    </div>
 
   </div>
 
@@ -195,214 +192,339 @@
   <audio id="wrong-sfx" src="/sounds/wrong.mp3" preload="auto"></audio>
 
   <!-- Socket.io Script -->
-	<script src="/socket.io/socket.io.js"></script>
-	<script>
-	  const socket = io();
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
 
-	  // Audio Elements
-	  const bgMusic = document.getElementById('bg-music');
-	  const correctSfx = document.getElementById('correct-sfx');
-	  const wrongSfx = document.getElementById('wrong-sfx');
+    // Audio Elements
+    const bgMusic = document.getElementById('bg-music');
+    const correctSfx = document.getElementById('correct-sfx');
+    const wrongSfx = document.getElementById('wrong-sfx');
 
-	  // DOM Elements
-	  const joinBox = document.getElementById('join-box');
-	  const waitingBox = document.getElementById('waiting-box');
-	  const questionBox = document.getElementById('question-box');
-	  const scoreboardBox = document.getElementById('scoreboard-box');
+    // DOM Elements
+    const joinBox = document.getElementById('join-box');
+    const waitingBox = document.getElementById('waiting-box');
+    const questionBox = document.getElementById('question-box');
+    const scoreboardBox = document.getElementById('scoreboard-box');
 
-	  const roomInput = document.getElementById('room-input');
-	  const nameInput = document.getElementById('name-input');
-	  const joinBtn = document.getElementById('join-btn');
-	  const errorMsg = document.getElementById('error-msg');
-	  const playerDisplayName = document.getElementById('player-display-name');
+    const roomInput = document.getElementById('room-input');
+    const nameInput = document.getElementById('name-input');
+    const joinBtn = document.getElementById('join-btn');
+    const errorMsg = document.getElementById('error-msg');
+    const playerDisplayName = document.getElementById('player-display-name');
 
-	  const questionText = document.getElementById('question-text');
-	  const timerDisplay = document.getElementById('timer-display');
-	  const optionsContainer = document.getElementById('options-container');
-	  const answerStatus = document.getElementById('answer-status');
-	  const scoreList = document.getElementById('score-list');
+    const questionText = document.getElementById('question-text');
+    const timerDisplay = document.getElementById('timer-display');
+    const optionsContainer = document.getElementById('options-container');
+    const answerStatus = document.getElementById('answer-status');
+    const scoreList = document.getElementById('score-list');
 
-	  let currentRoomId = '';
-	  let selectedBtnRef = null;
-	  let roomGameMode = 'manual'; // Default game mode
+    let currentRoomId = '';
+    let selectedBtnRef = null;
+    let roomGameMode = 'manual';
 
-	  // Helper: Play SFX and lower (duck) background music volume
-	  function playSoundEffect(audioElement) {
-		if (!audioElement) return;
+    // Helper: Play SFX and duck background music volume
+    function playSoundEffect(audioElement) {
+      if (!audioElement) return;
 
-		if (bgMusic && !bgMusic.paused) {
-		  bgMusic.volume = 0.2; // Lower BG music volume to 20%
-		}
+      if (bgMusic && !bgMusic.paused) {
+        bgMusic.volume = 0.2; // Lower BG music volume to 20%
+      }
 
-		audioElement.currentTime = 0;
-		audioElement.play().catch(err => console.log('SFX Play error:', err));
+      audioElement.currentTime = 0;
+      audioElement.play().catch(err => console.log('SFX Play error:', err));
 
-		audioElement.onended = () => {
-		  if (bgMusic) bgMusic.volume = 1.0;
-		};
-	  }
+      audioElement.onended = () => {
+        if (bgMusic) bgMusic.volume = 1.0;
+      };
+    }
 
-	  // Auto-fill Room ID if passed in URL
-	  const urlParams = new URLSearchParams(window.location.search);
-	  const roomParam = urlParams.get('room');
-	  if (roomParam) {
-		roomInput.value = roomParam;
-	  }
+    // Automatically grab Room ID from URL query parameters (QR code)
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+    if (roomParam) {
+      roomInput.value = roomParam;
+    }
 
-	  // 1. Join Room Action
-	  joinBtn.addEventListener('click', () => {
-		const roomId = roomInput.value.trim();
-		const name = nameInput.value.trim();
+    // 1. Join Room / Register Button Action
+    joinBtn.addEventListener('click', () => {
+      const roomId = roomInput.value.trim();
+      const name = nameInput.value.trim();
 
-		if (!roomId || !name) {
-		  errorMsg.textContent = 'Please enter both Room ID and Name!';
-		  return;
-		}
+      if (!roomId) {
+        errorMsg.textContent = 'Invalid room link. Please re-scan the QR code!';
+        return;
+      }
 
-		if (bgMusic) {
-		  bgMusic.volume = 1.0;
-		  bgMusic.play().catch(err => console.log('Autoplay prevented:', err));
-		}
+      if (!name) {
+        errorMsg.textContent = 'Please enter your name!';
+        return;
+      }
 
-		currentRoomId = roomId;
-		socket.emit('join_room', { roomId, name });
-	  });
+      // Play background music upon joining
+      if (bgMusic) {
+        bgMusic.volume = 1.0;
+        bgMusic.play().catch(err => console.log('Autoplay prevented:', err));
+      }
 
-	  // 2. Successful Join Listener
-	  socket.on('joined_successfully', ({ roomId, name, mode }) => {
-		playerDisplayName.textContent = name;
-		joinBox.classList.add('hidden');
-		waitingBox.classList.remove('hidden');
+      currentRoomId = roomId;
 
-		if (mode) {
-		  roomGameMode = mode;
-		}
-	  });
+      // Emit join events to register participant in the teacher's room
+      socket.emit('join_room', { roomId, name });
+      socket.emit('join_teacher_lobby', { roomId, name });
 
-	  // Room Error Handling
-	  socket.on('error_msg', (msg) => {
-		errorMsg.textContent = msg;
-	  });
+      playerDisplayName.textContent = name;
+      joinBox.classList.add('hidden');
+      waitingBox.classList.remove('hidden');
+    });
 
-	  // 3. Question Display Listener
-	  socket.on('display_question', (data) => {
-		waitingBox.classList.add('hidden');
-		scoreboardBox.classList.add('hidden');
-		questionBox.classList.remove('hidden');
+    // 2. Successful Join Listeners
+    socket.on('lobby_update', () => {
+      waitingBox.classList.remove('hidden');
+    });
 
-		answerStatus.textContent = '';
-		questionText.textContent = `Q${data.questionNumber}: ${data.question}`;
-		
-		optionsContainer.innerHTML = '';
-		data.options.forEach((opt, index) => {
-		  const btn = document.createElement('button');
-		  btn.className = 'option-btn';
-		  btn.textContent = opt;
-		  btn.addEventListener('click', () => submitAnswer(index, btn));
-		  optionsContainer.appendChild(btn);
-		});
-	  });
+    socket.on('joined_successfully', ({ roomId, name, mode }) => {
+      playerDisplayName.textContent = name;
+      joinBox.classList.add('hidden');
+      waitingBox.classList.remove('hidden');
 
-	  // Submit Answer Action
-	  function submitAnswer(selectedIndex, clickedBtn) {
-		selectedBtnRef = clickedBtn;
+      if (mode) {
+        roomGameMode = mode;
+      }
+    });
 
-		const buttons = optionsContainer.querySelectorAll('button');
-		buttons.forEach(btn => btn.disabled = true);
+    socket.on('error_msg', (msg) => {
+      errorMsg.textContent = msg;
+    });
 
-		clickedBtn.style.backgroundColor = '#ffc107'; // Highlight selected option
-		clickedBtn.style.color = '#000';
+    // 3. Question Display Listeners
+    socket.on('display_question', (data) => {
+      waitingBox.classList.add('hidden');
+      scoreboardBox.classList.add('hidden');
+      questionBox.classList.remove('hidden');
 
-		socket.emit('submit_answer', {
-		  roomId: currentRoomId,
-		  selectedOption: selectedIndex
-		});
-	  }
+      answerStatus.textContent = '';
+      questionText.textContent = `Q${data.questionNumber}: ${data.question}`;
+      
+      optionsContainer.innerHTML = '';
+      data.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => submitAnswer(index, btn));
+        optionsContainer.appendChild(btn);
+      });
+    });
 
-	  // 4. Answer Confirmation Listener
-	  socket.on('answer_confirmed', ({ isCorrect } = {}) => {
-		if (isCorrect === true) {
-		  answerStatus.textContent = 'Correct Answer! 🎉';
-		  playSoundEffect(correctSfx);
-		  if (selectedBtnRef) {
-			selectedBtnRef.style.backgroundColor = '#28a745';
-			selectedBtnRef.style.color = '#fff';
-		  }
-		} else if (isCorrect === false) {
-		  answerStatus.textContent = 'Incorrect Answer! ❌';
-		  playSoundEffect(wrongSfx);
-		  if (selectedBtnRef) {
-			selectedBtnRef.style.backgroundColor = '#dc3545';
-			selectedBtnRef.style.color = '#fff';
-		  }
-		} else {
-		  answerStatus.textContent = 'Answer Submitted! Waiting for results...';
-		}
-	  });
+    socket.on('next_rapid_question', (data) => {
+      waitingBox.classList.add('hidden');
+      scoreboardBox.classList.add('hidden');
+      questionBox.classList.remove('hidden');
 
-	  // 5. Timer Countdown Tick Listener
-	  socket.on('timer_tick', (timeLeft) => {
-		timerDisplay.textContent = timeLeft;
-	  });
+      answerStatus.textContent = '';
+      questionText.textContent = `Q${data.questionIndex}/${data.total}: ${data.question}`;
+      
+      optionsContainer.innerHTML = '';
+      data.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => submitRapidAnswer(index, btn));
+        optionsContainer.appendChild(btn);
+      });
+    });
 
-	  // 6. Leaderboard / Scoreboard Listener
-	  socket.on('leaderboard_data', (leaderboard) => {
-		questionBox.classList.add('hidden');
-		waitingBox.classList.add('hidden');
-		scoreboardBox.classList.remove('hidden');
+    function submitAnswer(selectedIndex, clickedBtn) {
+      selectedBtnRef = clickedBtn;
+      const buttons = optionsContainer.querySelectorAll('button');
+      buttons.forEach(btn => btn.disabled = true);
+      clickedBtn.style.backgroundColor = '#ffc107';
+      clickedBtn.style.color = '#000';
 
-		// Toggle waiting notice based on mode
-		const manualNotice = document.getElementById('manual-wait-notice');
-		if (manualNotice) {
-		  if (roomGameMode === 'manual') {
-			manualNotice.classList.remove('hidden');
-		  } else {
-			manualNotice.classList.add('hidden');
-		  }
-		}
+      socket.emit('submit_answer', {
+        roomId: currentRoomId,
+        selectedOption: selectedIndex
+      });
+    }
 
-		const me = leaderboard.find(p => p.id === socket.id);
+    function submitRapidAnswer(selectedIndex, clickedBtn) {
+      selectedBtnRef = clickedBtn;
+      const buttons = optionsContainer.querySelectorAll('button');
+      buttons.forEach(btn => btn.disabled = true);
+      clickedBtn.style.backgroundColor = '#ffc107';
+      clickedBtn.style.color = '#000';
 
-		if (me) {
-		  const myScoreEl = document.getElementById('my-score');
-		  const myRoundTimeEl = document.getElementById('my-round-time');
-		  const myTotalTimeEl = document.getElementById('my-total-time');
+      socket.emit('submit_rapid_answer', {
+        roomId: currentRoomId,
+        optionIndex: selectedIndex
+      });
+    }
 
-		  if (myScoreEl) myScoreEl.textContent = me.score;
-		  if (myRoundTimeEl) myRoundTimeEl.textContent = me.lastRoundTime ? me.lastRoundTime.toFixed(2) : 'N/A (No Answer)';
-		  if (myTotalTimeEl) myTotalTimeEl.textContent = me.totalTime ? me.totalTime.toFixed(2) : '0';
-		}
+// Paper Style Mode Listener: Display all questions at once
+// Paper Style Mode Listener: Display all questions at once
+    socket.on('display_paper_quiz', ({ questions }) => {
+      waitingBox.classList.add('hidden');
+      scoreboardBox.classList.add('hidden');
+      questionBox.classList.remove('hidden');
 
-		scoreList.innerHTML = leaderboard.map((p, index) => {
-		  const isMe = p.id === socket.id;
-		  return `
-			<li style="${isMe ? 'font-weight: bold; background: #d1ecf1;' : ''}">
-			  Rank ${index + 1}: ${p.name} — ${p.score} pts
-			</li>
-		  `;
-		}).join('');
-	  });
+      // Hide the timer display for paper mode since it's un-timed or bulk
+      const timerWrapper = document.getElementById('timer-display');
+      if (timerWrapper && timerWrapper.parentElement) {
+        timerWrapper.parentElement.style.display = 'none';
+      }
 
-	  // 7. Quiz Finished Event
-	  socket.on('quiz_ended', (data) => {
-		if (typeof bgMusic !== 'undefined' && bgMusic) {
-		  bgMusic.pause();
-		  bgMusic.currentTime = 0;
-		}
+      questionText.innerHTML = `<h3 style="color: #007bff; text-align: center;">📝 Paper Style Exam (Answer All Questions)</h3>`;
+      
+      let htmlContent = '';
+      questions.forEach((q, qIndex) => {
+        let optionsHtml = q.options.map((opt, optIdx) => `
+          <label style="display: block; margin: 8px 0; cursor: pointer; padding: 8px; background: #fff; border-radius: 4px; border: 1px solid #ccc;">
+            <input type="radio" name="paper-q-${qIndex}" value="${optIdx}" style="margin-right: 8px;"> ${opt}
+          </label>
+        `).join('');
 
-		const mainContent = document.getElementById('game-container') || document.querySelector('.container');
-		
-		if (mainContent) {
-		  mainContent.innerHTML = `
-			<h1 style="color: #007bff; text-align: center;">Knowledge Quiz</h1>
-			<div style="text-align: center; margin-top: 40px; padding: 20px;">
-			  <h2 style="color: #007bff; font-size: 24px;">🎉 Quiz Completed! 🎉</h2>
-			  <p style="font-size: 18px; color: #555; margin-top: 15px;">Thank you for participating!</p>
-			</div>
-		  `;
-		}
-	  });
-	</script>
+        htmlContent += `
+          <div style="background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ddd;">
+            <p><strong>Q${qIndex + 1}: ${q.question}</strong></p>
+            ${optionsHtml}
+          </div>
+        `;
+      });
+
+      htmlContent += `<button type="button" onclick="submitPaperAnswers()" style="background: #28a745; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px;">Submit Paper</button>`;
+      optionsContainer.innerHTML = htmlContent;
+
+      // Define global submission function so the inline onclick works reliably
+      window.submitPaperAnswers = function() {
+        const userAnswers = {};
+        let answeredCount = 0;
+
+        questions.forEach((_, qIndex) => {
+          const selected = document.querySelector(`input[name="paper-q-${qIndex}"]:checked`);
+          if (selected) {
+            userAnswers[qIndex] = parseInt(selected.value);
+            answeredCount++;
+          } else {
+            userAnswers[qIndex] = null;
+          }
+        });
+
+        // Optional check: ensure they answer or warn them
+        if (answeredCount === 0 && !confirm('You have not answered any questions. Do you still want to submit?')) {
+          return;
+        }
+
+        socket.emit('submit_paper_answers', { roomId: currentRoomId, answers: userAnswers });
+      };
+    });
+
+	socket.on('paper_submitted_success', ({ score, total }) => {
+	  questionBox.classList.add('hidden');
+	  scoreboardBox.classList.remove('hidden');
+	  
+	  const manualNotice = document.getElementById('manual-wait-notice');
+	  if (manualNotice) manualNotice.classList.add('hidden'); // Hide the "wait for next question" notice
+
+	  const myScoreEl = document.getElementById('my-score');
+	  if (myScoreEl) myScoreEl.textContent = score;
+
+	  answerStatus.textContent = `Quiz Completed! You scored ${score} out of ${total * 10} points.`;
+	  
+	  // Optionally add a custom quiz finished banner inside the scoreboard title or view
+	  const scoreboardTitle = document.getElementById('scoreboard-title');
+	  if (scoreboardTitle) scoreboardTitle.textContent = "🎉 Paper Exam Finished! 🎉";
+	});
+
+    socket.on('paper_submitted_success', ({ score, total }) => {
+      questionBox.classList.add('hidden');
+      scoreboardBox.classList.remove('hidden');
+      answerStatus.textContent = `Paper Submitted! You scored ${score} points.`;
+    });
+
+    // 4. Answer Confirmation & Audio SFX Feedbacks
+    socket.on('answer_confirmed', ({ isCorrect } = {}) => {
+      if (isCorrect === true) {
+        answerStatus.textContent = 'Correct Answer! 🎉';
+        playSoundEffect(correctSfx);
+        if (selectedBtnRef) {
+          selectedBtnRef.style.backgroundColor = '#28a745';
+          selectedBtnRef.style.color = '#fff';
+        }
+      } else if (isCorrect === false) {
+        answerStatus.textContent = 'Incorrect Answer! ❌';
+        playSoundEffect(wrongSfx);
+        if (selectedBtnRef) {
+          selectedBtnRef.style.backgroundColor = '#dc3545';
+          selectedBtnRef.style.color = '#fff';
+        }
+      }
+    });
+
+    socket.on('answer_feedback', ({ correct }) => {
+      if (correct) {
+        answerStatus.textContent = 'Correct Answer! 🎉';
+        playSoundEffect(correctSfx);
+        if (selectedBtnRef) {
+          selectedBtnRef.style.backgroundColor = '#28a745';
+          selectedBtnRef.style.color = '#fff';
+        }
+      } else {
+        answerStatus.textContent = 'Incorrect Answer! ❌';
+        playSoundEffect(wrongSfx);
+        if (selectedBtnRef) {
+          selectedBtnRef.style.backgroundColor = '#dc3545';
+          selectedBtnRef.style.color = '#fff';
+        }
+      }
+    });
+
+    socket.on('timer_tick', (timeLeft) => {
+      timerDisplay.textContent = timeLeft;
+    });
+
+	socket.on('leaderboard_data', (leaderboard) => {
+      questionBox.classList.add('hidden');
+      waitingBox.classList.add('hidden');
+      scoreboardBox.classList.remove('hidden');
+
+      const manualNotice = document.getElementById('manual-wait-notice');
+      if (manualNotice) {
+        manualNotice.classList.toggle('hidden', roomGameMode !== 'manual');
+      }
+
+      const me = leaderboard.find(p => p.id === socket.id);
+      if (me) {
+        const myScoreEl = document.getElementById('my-score');
+        if (myScoreEl) myScoreEl.textContent = me.score;
+      }
+
+      // Render leaderboard items in clean descending rows
+      scoreList.innerHTML = leaderboard.map((p, index) => {
+        const isMe = p.id === socket.id;
+        return `
+          <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; margin: 6px 0; border-radius: 6px; ${isMe ? 'font-weight: bold; background: #d1ecf1; border: 1px solid #bee5eb;' : 'background: #e9ecef;'}">
+            <span><strong>#${index + 1}</strong> ${p.name} ${isMe ? '(You)' : ''}</span>
+            <span><strong>${p.score}</strong> pts</span>
+          </li>
+        `;
+      }).join('');
+    });
+	
+	
+    socket.on('quiz_ended', () => {
+      if (bgMusic) {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+      }
+      document.querySelector('.container').innerHTML = `
+        <h1 style="color: #007bff; text-align: center;">Knowledge Quiz</h1>
+        <div style="text-align: center; margin-top: 40px; padding: 20px;">
+          <h2 style="color: #007bff; font-size: 24px;">🎉 Quiz Completed! 🎉</h2>
+          <p style="font-size: 18px; color: #555; margin-top: 15px;">Thank you for participating!</p>
+        </div>
+      `;
+    });
+  </script>
 
 </body>
 </html>
