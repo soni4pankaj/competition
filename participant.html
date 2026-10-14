@@ -121,6 +121,11 @@
   <div class="container">
     <h1>State Bank Academy</h1>
 
+    <!-- Floating Paper Mode Timer Badge -->
+    <div id="paper-timer-container" class="hidden" style="background: #e7f3ff; border: 1px solid #b6d4fe; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 15px; font-weight: bold; color: #004085;">
+      ⏳ Paper Exam Time Remaining: <span id="paper-timer-display">02:00</span>
+    </div>
+
     <!-- 1. Join Room Form -->
     <div id="join-box">
       <h2>Join Quiz</h2>
@@ -220,6 +225,9 @@
     const answerStatus = document.getElementById('answer-status');
     const scoreList = document.getElementById('score-list');
 
+    const paperTimerContainer = document.getElementById('paper-timer-container');
+    const paperTimerDisplay = document.getElementById('paper-timer-display');
+
     let currentRoomId = '';
     let selectedBtnRef = null;
     let roomGameMode = 'manual';
@@ -300,6 +308,8 @@
     // 3. Question Display Listeners
     socket.on('display_question', (data) => {
       if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+      
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
@@ -323,6 +333,8 @@
 
     socket.on('next_rapid_question', (data) => {
       if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
@@ -377,7 +389,10 @@
       questionBox.classList.remove('hidden');
 
       if (timerContainer) {
-        timerContainer.style.display = 'block';
+        timerContainer.style.display = 'none'; // Hide rapid timer
+      }
+      if (paperTimerContainer) {
+        paperTimerContainer.classList.remove('hidden'); // Show paper timer badge
       }
 
       let paperTimeLeft = Math.max(questions.length * 30, 120);
@@ -386,7 +401,9 @@
       paperInterval = setInterval(() => {
         let mins = Math.floor(paperTimeLeft / 60);
         let secs = paperTimeLeft % 60;
-        timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        if (paperTimerDisplay) {
+          paperTimerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
 
         if (paperTimeLeft <= 0) {
           clearInterval(paperInterval);
@@ -396,7 +413,7 @@
         paperTimeLeft--;
       }, 1000);
 
-      questionText.innerHTML = `<h3 style="color: #007bff; text-align: center;">📝 Paper Style Exam (Answer All Questions)</h3>`;
+      questionText.innerHTML = `<h3 style="color: #007bff; text-align: center; margin-bottom: 5px;">📝 Paper Style Exam</h3>`;
       
       let htmlContent = '';
       questions.forEach((q, qIndex) => {
@@ -419,6 +436,8 @@
 
       window.submitPaperAnswers = function() {
         if (paperInterval) clearInterval(paperInterval);
+        if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+        
         const userAnswers = {};
         let answeredCount = 0;
 
@@ -442,6 +461,8 @@
 
     socket.on('paper_submitted_success', ({ score, total }) => {
       if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
       questionBox.classList.add('hidden');
       scoreboardBox.classList.remove('hidden');
       
@@ -502,6 +523,8 @@
 
     socket.on('leaderboard_data', (leaderboard) => {
       if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
       questionBox.classList.add('hidden');
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.remove('hidden');
@@ -530,6 +553,8 @@
 	
     socket.on('quiz_ended', () => {
       if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
       if (bgMusic) {
         bgMusic.pause();
         bgMusic.currentTime = 0;
