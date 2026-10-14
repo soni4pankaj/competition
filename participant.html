@@ -391,8 +391,13 @@
       if (timerContainer) {
         timerContainer.style.display = 'none'; // Hide rapid timer
       }
-      if (paperTimerContainer) {
-        paperTimerContainer.classList.remove('hidden'); // Show paper timer badge
+
+      const activePaperTimerContainer = document.getElementById('paper-timer-container');
+      const activePaperTimerDisplay = document.getElementById('paper-timer-display');
+      
+      if (activePaperTimerContainer) {
+        activePaperTimerContainer.classList.remove('hidden');
+        activePaperTimerContainer.style.display = 'block';
       }
 
       let paperTimeLeft = Math.max(questions.length * 30, 120);
@@ -401,8 +406,8 @@
       paperInterval = setInterval(() => {
         let mins = Math.floor(paperTimeLeft / 60);
         let secs = paperTimeLeft % 60;
-        if (paperTimerDisplay) {
-          paperTimerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        if (activePaperTimerDisplay) {
+          activePaperTimerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
 
         if (paperTimeLeft <= 0) {
@@ -436,7 +441,7 @@
 
       window.submitPaperAnswers = function() {
         if (paperInterval) clearInterval(paperInterval);
-        if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+        if (activePaperTimerContainer) activePaperTimerContainer.classList.add('hidden');
         
         const userAnswers = {};
         let answeredCount = 0;
