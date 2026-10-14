@@ -8,6 +8,8 @@ const QRCode = require('qrcode');
 const fs = require('fs');
 const os = require('os');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const XLSX = require('xlsx');
 
 // Import Mongoose Models
 const User = require('./models/User');
@@ -18,6 +20,7 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
 const PUBLIC_URL = process.env.PUBLIC_URL || '';
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware & Static Files
 app.use(express.json());
@@ -50,7 +53,6 @@ app.post('/api/admin/users', async (req, res) => {
     if (typeof assignedTopics === 'string') {
       topicsArray = assignedTopics.split(',').map(t => t.trim()).filter(Boolean);
     }
-    // Backward compatibility if assignedQuiz string was sent
     if ((!topicsArray || topicsArray.length === 0) && assignedQuiz) {
       topicsArray = assignedQuiz.split(',').map(t => t.trim()).filter(Boolean);
     }
@@ -157,15 +159,29 @@ app.get('/api/questions', async (req, res) => {
   }
 });
 
-// Save Questions to MongoDB
-app.post('/api/questions', async (req, res) => {
+// Delete a single question by ID
+app.delete('/api/questions/:id', async (req, res) => {
   try {
-    await Question.deleteMany({});
-    await Question.insertMany(req.body);
-    questions = await Question.find().sort({ id: 1 });
-    res.json({ success: true, message: 'Questions updated successfully!' });
+    await Question.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Question deleted successfully!' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to save questions' });
+    res.status(500).json({ success: false, message: 'Failed to delete question' });
+  }
+});
+
+// Update a single question by ID
+app.put('/api/questions/:id', async (req, res) => {
+  try {
+    const { question, options, answer, category } = req.body;
+    await Question.findByIdAndUpdate(req.params.id, {
+      question,
+      options,
+      answer: parseInt(answer),
+      category
+    });
+    res.json({ success: true, message: 'Question updated successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to update question' });
   }
 });
 
@@ -201,35 +217,6 @@ function getLocalIpAddress() {
   return 'localhost';
 }
 
-// Add a new question to a specific topic
-app.post('/api/topics/:topicId/questions', async (req, res) => {
-  try {
-    const { topicId } = req.params;
-    const { question, options, answer, category } = req.body;
-    
-    // Find highest existing id to increment
-    const lastQuestion = await Question.findOne().sort({ id: -1 });
-    const newId = lastQuestion ? lastQuestion.id + 1 : 1;
-
-    const newQuestion = new Question({
-      id: newId,
-      question: question,
-      options: options, // Array of 4 strings
-      answer: parseInt(answer), // Index 0-3
-      category: topicId || category || 'default'
-    });
-    
-    await newQuestion.save();
-    res.json({ success: true, message: 'Question added successfully!' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Middleware & Static Files
-app.use(express.json());
-app.use(express.static(__dirname));
-
 // --- Topic-Specific Question Routes ---
 
 // Get all questions for a specific topic
@@ -264,6 +251,46 @@ app.post('/api/topics/:topicId/questions', async (req, res) => {
     res.json({ success: true, message: 'Question added successfully!' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Bulk Upload Endpoint (Supports Excel file upload)
+app.post('/api/topics/:topicId/bulk-upload', upload.single('file'), async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    let questionsData = [];
+
+    if (req.file) {
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet);
+
+      const lastQuestion = await Question.findOne().sort({ id: -1 });
+      let nextId = lastQuestion ? lastQuestion.id + 1 : 1;
+
+      questionsData = rows.map((row) => ({
+        id: nextId++,
+        question: row.question || row.Question,
+        options: [
+          row.option1 || row.Option1 || '',
+          row.option2 || row.Option2 || '',
+          row.option3 || row.Option3 || '',
+          row.option4 || row.Option4 || ''
+        ],
+        answer: parseInt(row.answer !== undefined ? row.answer : row.Answer),
+        category: topicId
+      }));
+    }
+
+    if (questionsData.length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid questions found in uploaded file.' });
+    }
+
+    await Question.insertMany(questionsData);
+    res.json({ success: true, message: `Successfully uploaded ${questionsData.length} questions!` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to process bulk upload: ' + err.message });
   }
 });
 
@@ -312,113 +339,6 @@ io.on('connection', (socket) => {
 
     socket.emit('joined_successfully', { roomId, name, mode: room.mode });
     io.to(roomId).emit('player_list_update', Object.values(room.players));
-  });
-
-  function loadQuestion(roomId) {
-    const room = rooms[roomId];
-    if (!room) return;
-
-    if (questionTimer) clearInterval(questionTimer);
-
-    if (room.currentQuestion >= questions.length) {
-      const finalLeaderboard = getSortedLeaderboard(room);
-      io.to(roomId).emit('quiz_ended', finalLeaderboard);
-      return;
-    }
-
-    const q = questions[room.currentQuestion];
-    room.answers = {};
-    room.questionStartTime = Date.now();
-
-    io.to(roomId).emit('display_question', {
-      questionNumber: room.currentQuestion + 1,
-      question: q.question,
-      options: q.options
-    });
-
-    room.currentQuestion += 1;
-
-    let timeLeft = 15;
-    io.to(roomId).emit('timer_tick', timeLeft);
-
-    questionTimer = setInterval(() => {
-      timeLeft -= 1;
-      io.to(roomId).emit('timer_tick', timeLeft);
-
-      if (timeLeft <= 0) {
-        clearInterval(questionTimer);
-        const leaderboard = getSortedLeaderboard(room);
-        io.to(roomId).emit('time_up');
-        io.to(roomId).emit('leaderboard_data', leaderboard);
-
-        if (room.mode === 'auto') {
-          setTimeout(() => {
-            loadQuestion(roomId);
-          }, 5000);
-        }
-      }
-    }, 1000);
-  }
-
-  socket.on('next_question', (roomId) => {
-    const room = rooms[roomId];
-    if (!room) return;
-    socket.join(roomId);
-    loadQuestion(roomId);
-  });
-
-  socket.on('submit_answer', ({ roomId, selectedOption }) => {
-    const room = rooms[roomId];
-    if (!room || room.answers[socket.id] !== undefined) return;
-
-    const startTime = room.questionStartTime || Date.now();
-    const timeTaken = parseFloat(((Date.now() - startTime) / 1000).toFixed(2));
-
-    room.answers[socket.id] = selectedOption;
-
-    const currentQ = questions[room.currentQuestion - 1];
-    let scoreGained = 0;
-    let isCorrect = false;
-
-    if (currentQ && selectedOption === currentQ.answer) {
-      isCorrect = true;
-      scoreGained = timeTaken <= 5 ? 15 : (timeTaken <= 10 ? 10 : 5);
-      room.players[socket.id].score += scoreGained;
-    } else {
-      scoreGained = -5;
-      isCorrect = false;
-      room.players[socket.id].score += scoreGained;
-    }
-
-    socket.emit('answer_confirmed', { timeTaken, scoreGained, isCorrect });
-
-    const totalPlayers = Object.keys(room.players).length;
-    const answeredPlayers = Object.keys(room.answers).length;
-
-    if (answeredPlayers >= totalPlayers && totalPlayers > 0) {
-      if (questionTimer) clearInterval(questionTimer);
-
-      const leaderboard = getSortedLeaderboard(room);
-      io.to(roomId).emit('time_up');
-      io.to(roomId).emit('leaderboard_data', leaderboard);
-
-      if (room.mode === 'auto') {
-        setTimeout(() => {
-          loadQuestion(roomId);
-        }, 5000);
-      }
-    }
-  });
-
-  socket.on('show_leaderboard', (roomId) => {
-    if (questionTimer) clearInterval(questionTimer);
-    const room = rooms[roomId];
-    if (!room) return;
-
-    const leaderboard = getSortedLeaderboard(room);
-    io.to(roomId).emit('leaderboard_data', leaderboard);
-    socket.emit('leaderboard_data', leaderboard);
-    room.currentQuestion += 1;
   });
 
   // --- TEACHER & RAPID-FIRE / PAPER MODE SOCKET HANDLERS ---
@@ -496,60 +416,6 @@ io.on('connection', (socket) => {
     room.players[socket.id].score = score;
     io.to(roomId).emit('lobby_update', { players: Object.values(room.players) });
     socket.emit('paper_submitted_success', { score, total: room.questions.length });
-  });
- 
-  function runRapidFireQuestion(roomId) {
-    const room = rooms[roomId];
-    if (!room || room.currentQuestionIndex >= room.questions.length) {
-      const leaderboard = Object.values(room.players).sort((a, b) => b.score - a.score);
-      io.to(roomId).emit('quiz_ended', leaderboard);
-      return;
-    }
-
-    const q = room.questions[room.currentQuestionIndex];
-    room.answers = {};
-
-    io.to(roomId).emit('next_rapid_question', {
-      questionIndex: room.currentQuestionIndex + 1,
-      total: room.questions.length,
-      question: q.question,
-      options: q.options
-    });
-
-    let timeLeft = 20;
-    const rapidTimer = setInterval(() => {
-      timeLeft--;
-      io.to(roomId).emit('timer_tick', timeLeft);
-
-      const allAnswered = Object.keys(room.answers).length >= Object.keys(room.players).length;
-      if (timeLeft <= 0 || allAnswered) {
-        clearInterval(rapidTimer);
-
-        io.to(roomId).emit('question_break', { correctIndex: q.answer });
-        room.currentQuestionIndex++;
-
-        setTimeout(() => {
-          runRapidFireQuestion(roomId);
-        }, 5000);
-      }
-    }, 1000);
-  }
-
-  socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
-    const room = rooms[roomId];
-    if (!room || room.answers[socket.id] !== undefined) return;
-
-    room.answers[socket.id] = optionIndex;
-    const currentQ = room.questions[room.currentQuestionIndex];
-
-    if (optionIndex === currentQ.answer) {
-      room.players[socket.id].score += 10;
-      socket.emit('answer_feedback', { correct: true });
-    } else {
-      socket.emit('answer_feedback', { correct: false });
-    }
-
-    io.to(roomId).emit('lobby_update', { players: Object.values(room.players) });
   });
 
 });

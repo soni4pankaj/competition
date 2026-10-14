@@ -142,6 +142,23 @@
         </div>
       </div>
 
+      <!-- Bulk Upload Section -->
+      <div class="p-4 rounded-2xl bg-slate-950/40 border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
+        <div>
+          <h3 class="text-xs font-semibold text-white flex items-center gap-1.5">
+            <i data-lucide="upload" class="w-4 h-4 text-emerald-400"></i>
+            Bulk Upload Questions (Excel .xlsx)
+          </h3>
+          <p class="text-[10px] text-slate-400 mt-0.5">Columns required: <code class="text-purple-300">question, option1, option2, option3, option4, answer (0-3)</code></p>
+        </div>
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <input type="file" id="bulk-file-input" accept=".xlsx, .xls" class="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer" />
+          <button id="upload-bulk-btn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition-all">
+            Upload Excel
+          </button>
+        </div>
+      </div>
+
       <div class="rounded-2xl border border-white/10 bg-slate-950/40 backdrop-blur-xl overflow-hidden mt-4">
         <table class="w-full text-left border-collapse">
           <thead>
@@ -211,8 +228,43 @@
       if (typeof initTeacherDashboard === 'function') {
         initTeacherDashboard(currentUser);
       }
-      if (typeof initTeacherQuestionManager === 'function') {
-        initTeacherQuestionManager(currentUser);
+      
+      // Bulk Upload Event Handler Binding
+      const uploadBulkBtn = document.getElementById('upload-bulk-btn');
+      if (uploadBulkBtn) {
+        uploadBulkBtn.addEventListener('click', async () => {
+          const fileInput = document.getElementById('bulk-file-input');
+          const manageTopicSelect = document.getElementById('teacher-manage-topic-select');
+          const topic = manageTopicSelect ? manageTopicSelect.value : 'default';
+
+          if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Please select an Excel (.xlsx) file first!');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('file', fileInput.files[0]);
+
+          try {
+            const res = await fetch(`/api/topics/${encodeURIComponent(topic)}/bulk-upload`, {
+              method: 'POST',
+              body: formData
+            });
+            const data = await res.json();
+
+            if (data.success) {
+              alert(data.message);
+              fileInput.value = '';
+              if (typeof loadQuestionsForTopic === 'function') {
+                loadQuestionsForTopic(topic);
+              }
+            } else {
+              alert(data.message || 'Upload failed');
+            }
+          } catch (err) {
+            alert('Error uploading file.');
+          }
+        });
       }
 
       // Logout handler
