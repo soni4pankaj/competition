@@ -222,13 +222,14 @@
     let currentRoomId = '';
     let selectedBtnRef = null;
     let roomGameMode = 'manual';
+    let paperInterval = null;
 
     // Helper: Play SFX and duck background music volume
     function playSoundEffect(audioElement) {
       if (!audioElement) return;
 
       if (bgMusic && !bgMusic.paused) {
-        bgMusic.volume = 0.2; // Lower BG music volume to 20%
+        bgMusic.volume = 0.2;
       }
 
       audioElement.currentTime = 0;
@@ -261,7 +262,6 @@
         return;
       }
 
-      // Play background music upon joining
       if (bgMusic) {
         bgMusic.volume = 1.0;
         bgMusic.play().catch(err => console.log('Autoplay prevented:', err));
@@ -269,7 +269,6 @@
 
       currentRoomId = roomId;
 
-      // Emit join events to register participant in the teacher's room
       socket.emit('join_room', { roomId, name });
       socket.emit('join_teacher_lobby', { roomId, name });
 
@@ -299,9 +298,14 @@
 
     // 3. Question Display Listeners
     socket.on('display_question', (data) => {
+      if (paperInterval) clearInterval(paperInterval);
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
+
+      if (timerDisplay && timerDisplay.parentElement) {
+        timerDisplay.parentElement.style.display = 'block';
+      }
 
       answerStatus.textContent = '';
       questionText.textContent = `Q${data.questionNumber}: ${data.question}`;
@@ -317,9 +321,14 @@
     });
 
     socket.on('next_rapid_question', (data) => {
+      if (paperInterval) clearInterval(paperInterval);
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
+
+      if (timerDisplay && timerDisplay.parentElement) {
+        timerDisplay.parentElement.style.display = 'block';
+      }
 
       answerStatus.textContent = '';
       questionText.textContent = `Q${data.questionIndex}/${data.total}: ${data.question}`;
@@ -360,18 +369,33 @@
       });
     }
 
-// Paper Style Mode Listener: Display all questions at once
-// Paper Style Mode Listener: Display all questions at once
+    // Paper Style Mode Listener with Active Countdown Timer
     socket.on('display_paper_quiz', ({ questions }) => {
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
 
-      // Hide the timer display for paper mode since it's un-timed or bulk
-      const timerWrapper = document.getElementById('timer-display');
-      if (timerWrapper && timerWrapper.parentElement) {
-        timerWrapper.parentElement.style.display = 'none';
+      // Make sure timer display is visible and active
+      if (timerDisplay && timerDisplay.parentElement) {
+        timerDisplay.parentElement.style.display = 'block';
       }
+
+      // Calculate time: 30 seconds per question (minimum 120s / 2 minutes)
+      let paperTimeLeft = Math.max(questions.length * 30, 120);
+
+      if (paperInterval) clearInterval(paperInterval);
+      paperInterval = setInterval(() => {
+        let mins = Math.floor(paperTimeLeft / 60);
+        let secs = paperTimeLeft % 60;
+        timerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+        if (paperTimeLeft <= 0) {
+          clearInterval(paperInterval);
+          alert('Time is up! Automatically submitting your paper.');
+          window.submitPaperAnswers();
+        }
+        paperTimeLeft--;
+      }, 1000);
 
       questionText.innerHTML = `<h3 style="color: #007bff; text-align: center;">📝 Paper Style Exam (Answer All Questions)</h3>`;
       
@@ -394,8 +418,8 @@
       htmlContent += `<button type="button" onclick="submitPaperAnswers()" style="background: #28a745; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px;">Submit Paper</button>`;
       optionsContainer.innerHTML = htmlContent;
 
-      // Define global submission function so the inline onclick works reliably
       window.submitPaperAnswers = function() {
+        if (paperInterval) clearInterval(paperInterval);
         const userAnswers = {};
         let answeredCount = 0;
 
@@ -409,7 +433,6 @@
           }
         });
 
-        // Optional check: ensure they answer or warn them
         if (answeredCount === 0 && !confirm('You have not answered any questions. Do you still want to submit?')) {
           return;
         }
@@ -418,27 +441,21 @@
       };
     });
 
-	socket.on('paper_submitted_success', ({ score, total }) => {
-	  questionBox.classList.add('hidden');
-	  scoreboardBox.classList.remove('hidden');
-	  
-	  const manualNotice = document.getElementById('manual-wait-notice');
-	  if (manualNotice) manualNotice.classList.add('hidden'); // Hide the "wait for next question" notice
-
-	  const myScoreEl = document.getElementById('my-score');
-	  if (myScoreEl) myScoreEl.textContent = score;
-
-	  answerStatus.textContent = `Quiz Completed! You scored ${score} out of ${total * 10} points.`;
-	  
-	  // Optionally add a custom quiz finished banner inside the scoreboard title or view
-	  const scoreboardTitle = document.getElementById('scoreboard-title');
-	  if (scoreboardTitle) scoreboardTitle.textContent = "🎉 Paper Exam Finished! 🎉";
-	});
-
     socket.on('paper_submitted_success', ({ score, total }) => {
+      if (paperInterval) clearInterval(paperInterval);
       questionBox.classList.add('hidden');
       scoreboardBox.classList.remove('hidden');
-      answerStatus.textContent = `Paper Submitted! You scored ${score} points.`;
+      
+      const manualNotice = document.getElementById('manual-wait-notice');
+      if (manualNotice) manualNotice.classList.add('hidden');
+
+      const myScoreEl = document.getElementById('my-score');
+      if (myScoreEl) myScoreEl.textContent = score;
+
+      answerStatus.textContent = `Quiz Completed! You scored ${score} out of ${total * 10} points.`;
+      
+      const scoreboardTitle = document.getElementById('scoreboard-title');
+      if (scoreboardTitle) scoreboardTitle.textContent = "🎉 Paper Exam Finished! 🎉";
     });
 
     // 4. Answer Confirmation & Audio SFX Feedbacks
@@ -479,10 +496,13 @@
     });
 
     socket.on('timer_tick', (timeLeft) => {
-      timerDisplay.textContent = timeLeft;
+      if (!paperInterval) {
+        timerDisplay.textContent = timeLeft;
+      }
     });
 
-	socket.on('leaderboard_data', (leaderboard) => {
+    socket.on('leaderboard_data', (leaderboard) => {
+      if (paperInterval) clearInterval(paperInterval);
       questionBox.classList.add('hidden');
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.remove('hidden');
@@ -498,7 +518,6 @@
         if (myScoreEl) myScoreEl.textContent = me.score;
       }
 
-      // Render leaderboard items in clean descending rows
       scoreList.innerHTML = leaderboard.map((p, index) => {
         const isMe = p.id === socket.id;
         return `
@@ -510,8 +529,8 @@
       }).join('');
     });
 	
-	
     socket.on('quiz_ended', () => {
+      if (paperInterval) clearInterval(paperInterval);
       if (bgMusic) {
         bgMusic.pause();
         bgMusic.currentTime = 0;
