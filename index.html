@@ -13,6 +13,16 @@
   
   <!-- Socket.io Client -->
   <script src="/socket.io/socket.io.js"></script>
+	<script>
+	  const socket = io();
+	</script>  
+
+  <!-- Modular Frontend Scripts -->
+  <script src="public/js/topics.js" defer></script>
+  <script src="public/js/auth.js" defer></script>
+  <script src="public/js/admin.js" defer></script>
+  <script src="public/js/teacher.js" defer></script>
+  <script src="public/js/participant.js" defer></script>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-800 font-sans relative overflow-x-hidden selection:bg-purple-500 selection:text-white">
 
@@ -136,22 +146,43 @@
         </div>
       </div>
 
+      <!-- Topic Master Management -->
+      <div class="bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
+        <h2 class="text-lg font-semibold text-white mb-3">Topic Master List</h2>
+        <form id="createTopicForm" class="flex gap-3 mb-4">
+          <input type="text" id="new-topic-name" placeholder="New Topic Name (e.g. Node.js, Express)" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1" />
+          <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">Add Topic</button>
+        </form>
+        <div id="topic-tags-container" class="flex flex-wrap gap-2 text-xs text-slate-300">
+          <!-- Populated dynamically with active topics -->
+        </div>
+      </div>
+
       <!-- Create User Section -->
       <div class="bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl">
         <h2 class="text-lg font-semibold text-white mb-4">Create New User & Assign Topics</h2>
-        <form id="createUserForm" class="grid grid-cols-1 sm:grid-cols-5 gap-4">
-          <input type="text" id="new-username" placeholder="Username" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-          <input type="password" id="new-password" placeholder="Password" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-          <select id="new-role" class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option value="user">Student (User)</option>
-            <option value="teacher">Teacher</option>
-            <option value="admin">Admin</option>
-          </select>
-          <input type="text" id="new-assignedTopics" placeholder="Topics (comma separated)" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-          <button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">Add User</button>
+        <form id="createUserForm" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <input type="text" id="new-username" placeholder="Username" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            <input type="password" id="new-password" placeholder="Password" required class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+            <select id="new-role" class="px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="user">Student (User)</option>
+              <option value="teacher">Teacher</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1.5">Assign Topics</label>
+            <div id="user-topics-checkboxes" class="flex flex-wrap gap-4 p-3 rounded-xl bg-slate-950/50 border border-white/10 max-h-36 overflow-y-auto">
+              <!-- Dynamically populated checkboxes from database -->
+            </div>
+          </div>
+
+          <button type="submit" class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">Add User</button>
         </form>
       </div>
-
+      
       <!-- Users Table -->
       <div class="rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-xl overflow-hidden">
         <table class="w-full text-left border-collapse">
@@ -289,8 +320,10 @@
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-slate-300 mb-1">Assigned Topics (comma separated)</label>
-          <input type="text" id="edit-assignedTopics" required class="w-full px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          <label class="block text-xs font-medium text-slate-300 mb-1.5">Assigned Topics</label>
+          <div id="edit-user-topics-checkboxes" class="flex flex-wrap gap-4 p-3 rounded-xl bg-slate-950/50 border border-white/10 max-h-36 overflow-y-auto">
+            <!-- Dynamically populated checkboxes -->
+          </div>
         </div>
         <div class="flex justify-end gap-3 mt-6">
           <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold hover:bg-slate-700 transition-all">Cancel</button>
@@ -301,352 +334,9 @@
   </div>
 
   <script>
-    let socket = io();
-    let loadedQuestions = [];
-    let timerInterval = null;
-    let currentRoomId = null;
-
+    // Initialize Lucide Icons globally on load
     document.addEventListener('DOMContentLoaded', () => {
-      lucide.createIcons();
-
-      const loginForm = document.getElementById('login-form');
-      const usernameInput = document.getElementById('input-username');
-      const passwordInput = document.getElementById('input-password');
-      const errorBox = document.getElementById('login-error');
-      const errorText = document.getElementById('login-error-text');
-
-      // Fast Demo Buttons
-      document.getElementById('demo-admin-btn').addEventListener('click', () => {
-        usernameInput.value = 'admin';
-        passwordInput.value = 'admin123';
-      });
-
-      document.getElementById('demo-user-btn').addEventListener('click', () => {
-        usernameInput.value = 'user1';
-        passwordInput.value = 'user123';
-      });
-
-      // Handle Login Submission
-      loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorBox.classList.add('hidden');
-
-        try {
-          const res = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              username: usernameInput.value.trim(),
-              password: passwordInput.value.trim()
-            })
-          });
-
-          const data = await res.json();
-
-          if (data.success) {
-            localStorage.setItem('currentUser', JSON.stringify(data.user));
-
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('main-header').classList.remove('hidden');
-
-            document.getElementById('header-user-name').textContent = data.user.username;
-            document.getElementById('header-user-role').textContent = data.user.role;
-
-            if (data.user.role === 'admin') {
-              document.getElementById('view-admin').classList.remove('hidden');
-              loadAdminUsers();
-            } else if (data.user.role === 'teacher') {
-              document.getElementById('view-teacher').classList.remove('hidden');
-              initTeacherDashboard(data.user);
-            } else {
-              document.getElementById('view-participant').classList.remove('hidden');
-              const topics = data.user.assignedTopics || ['default'];
-              loadParticipantQuiz(topics[0]);
-            }
-          } else {
-            errorText.textContent = data.message || 'Invalid login details';
-            errorBox.classList.remove('hidden');
-          }
-        } catch (err) {
-          errorText.textContent = 'Server connection error';
-          errorBox.classList.remove('hidden');
-        }
-      });
-
-      // Logout Handler
-      document.getElementById('logout-btn').addEventListener('click', () => {
-        localStorage.removeItem('currentUser');
-        window.location.reload();
-      });
-
-      // Fetch and render users for Admin
-      window.loadAdminUsers = async function() {
-        try {
-          const res = await fetch('/api/admin/users');
-          const data = await res.json();
-          if (data.success) {
-            const tbody = document.getElementById('userTableBody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-            data.users.forEach(user => {
-              const topicsStr = Array.isArray(user.assignedTopics) ? user.assignedTopics.join(', ') : (user.assignedQuiz || 'default');
-              tbody.innerHTML += `
-                <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                  <td class="px-4 py-3 text-xs text-slate-200">${user.username}</td>
-                  <td class="px-4 py-3 text-xs text-slate-300 capitalize">${user.role}</td>
-                  <td class="px-4 py-3 text-xs text-purple-300">${topicsStr}</td>
-                  <td class="px-4 py-3 text-xs text-right space-x-2">
-                    <button onclick="openEditModal('${user._id}', '${user.username}', '${user.role}', '${topicsStr}')" class="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-all">Edit</button>
-                    <button onclick="deleteUser('${user._id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all">Delete</button>
-                  </td>
-                </tr>
-              `;
-            });
-          }
-        } catch (err) {
-          console.error('Failed to load users:', err);
-        }
-      };
-
-      // Teacher Dashboard Initialization
-      function initTeacherDashboard(user) {
-        const topicSelect = document.getElementById('teacher-topic-select');
-        topicSelect.innerHTML = '';
-        const topics = user.assignedTopics && user.assignedTopics.length > 0 ? user.assignedTopics : ['default'];
-        topics.forEach(topic => {
-          topicSelect.innerHTML += `<option value="${topic}">${topic}</option>`;
-        });
-
-        document.getElementById('create-room-btn').addEventListener('click', () => {
-          const selectedTopic = topicSelect.value;
-          const selectedMode = document.getElementById('teacher-mode-select').value;
-          currentRoomId = 'room_' + Math.random().toString(36).substring(2, 8);
-
-          // Reset UI elements so a fresh lobby and QR code display properly even after a previous quiz ended
-          document.getElementById('teacher-lobby-card').classList.remove('hidden');
-          document.getElementById('qr-code-section').classList.remove('hidden');
-          document.getElementById('start-quiz-session-btn').classList.remove('hidden');
-          document.getElementById('lobby-qr-img').src = '';
-          document.getElementById('lobby-student-count').textContent = '0';
-          document.getElementById('lobby-student-list').innerHTML = '';
-
-          socket.emit('create_teacher_room', { roomId: currentRoomId, category: selectedTopic, mode: selectedMode });
-        });
-      }
-
-      socket.on('room_ready', ({ qrCode, roomId }) => {
-        document.getElementById('lobby-qr-img').src = qrCode;
-        document.getElementById('teacher-lobby-card').classList.remove('hidden');
-      });
-
-      socket.on('lobby_update', ({ players }) => {
-        document.getElementById('lobby-student-count').textContent = players.length;
-        const list = document.getElementById('lobby-student-list');
-        list.innerHTML = '';
-        
-        // Sort players descending by score (topper first)
-        const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-
-        sortedPlayers.forEach((p, index) => {
-          list.innerHTML += `
-            <li class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-200">
-              <span class="font-semibold">#${index + 1} ${p.name}</span>
-              <span class="font-bold text-white">${p.score} pts</span>
-            </li>
-          `;
-        });
-      });
-
-      document.getElementById('start-quiz-session-btn').addEventListener('click', () => {
-        if (currentRoomId) {
-          socket.emit('start_teacher_quiz', currentRoomId);
-          
-          // Hide ONLY the QR code section, keeping the student list and scoreboard/lobby stats visible
-          const qrSection = document.getElementById('qr-code-section');
-          if (qrSection) qrSection.classList.add('hidden');
-
-          // Hide the Start Quiz button once the quiz has begun
-          const startBtn = document.getElementById('start-quiz-session-btn');
-          if (startBtn) startBtn.classList.add('hidden');
-        }
-      });
-
-      // Timer Countdown Function
-      function startQuizTimer(durationInSeconds) {
-        let timer = durationInSeconds;
-        const timerDisplay = document.getElementById('time-remaining');
-        
-        if (timerInterval) clearInterval(timerInterval);
-
-        timerInterval = setInterval(() => {
-          let minutes = Math.floor(timer / 60);
-          let seconds = timer % 60;
-
-          minutes = minutes < 10 ? '0' + minutes : minutes;
-          seconds = seconds < 10 ? '0' + seconds : seconds;
-
-          timerDisplay.textContent = `${minutes}:${seconds}`;
-
-          if (--timer < 0) {
-            clearInterval(timerInterval);
-            alert('Time is up! Submitting your quiz automatically.');
-            submitQuiz();
-          }
-        }, 1000);
-      }
-
-      // Load Participant Quiz based on Assigned Category
-      async function loadParticipantQuiz(category) {
-        try {
-          const res = await fetch(`/api/questions?category=${category}`);
-          const data = await res.json();
-          
-          loadedQuestions = data.questions || [];
-          document.getElementById('quiz-category-title').textContent = `Assigned Category: ${data.category.toUpperCase()}`;
-          const container = document.getElementById('quiz-container');
-          container.innerHTML = '';
-
-          if (loadedQuestions.length === 0) {
-            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No questions found for this category.</p>`;
-            document.getElementById('submit-btn-container').classList.add('hidden');
-            return;
-          }
-
-          loadedQuestions.forEach((q, index) => {
-            let optionsHtml = q.options.map((opt, optIdx) => `
-              <label class="block p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-purple-500/50 cursor-pointer text-xs text-slate-200 transition-all">
-                <input type="radio" name="question-${index}" value="${optIdx}" class="mr-2 accent-purple-500">
-                ${opt}
-              </label>
-            `).join('');
-
-            container.innerHTML += `
-              <div class="p-6 rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-xl space-y-3">
-                <h3 class="text-sm font-semibold text-white">Q${index + 1}. ${q.question}</h3>
-                <div class="space-y-2">${optionsHtml}</div>
-              </div>
-            `;
-          });
-
-          startQuizTimer(120);
-
-        } catch (err) {
-          console.error('Failed to load quiz questions:', err);
-        }
-      }
-
-      // Reusable Quiz Submission & Scoring Function
-      window.submitQuiz = function() {
-        if (timerInterval) clearInterval(timerInterval);
-
-        let score = 0;
-        let total = loadedQuestions.length;
-
-        loadedQuestions.forEach((q, index) => {
-          const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
-          if (selectedOption) {
-            const selectedVal = parseInt(selectedOption.value);
-            if (selectedVal === q.answer) {
-              score++;
-            }
-          }
-        });
-
-        document.getElementById('quiz-container').classList.add('hidden');
-        document.getElementById('submit-btn-container').classList.add('hidden');
-        
-        document.getElementById('quiz-score-text').textContent = `You scored ${score} out of ${total} correct!`;
-        document.getElementById('quiz-result-card').classList.remove('hidden');
-        
-        lucide.createIcons();
-      };
-
-      document.getElementById('submit-quiz-btn').addEventListener('click', submitQuiz);
-
-      // Create New User Handler
-      document.getElementById('createUserForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('new-username').value.trim();
-        const password = document.getElementById('new-password').value.trim();
-        const role = document.getElementById('new-role').value;
-        const assignedTopics = document.getElementById('new-assignedTopics').value.trim();
-
-        try {
-          const res = await fetch('/api/admin/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, role, assignedTopics })
-          });
-          const data = await res.json();
-          if (data.success) {
-            alert('User created successfully!');
-            document.getElementById('createUserForm').reset();
-            loadAdminUsers();
-          } else {
-            alert(data.message);
-          }
-        } catch (err) {
-          alert('Error creating user.');
-        }
-      });
-
-      // Delete User Handler
-      window.deleteUser = async function(id) {
-        if (!confirm('Are you sure you want to delete this user?')) return;
-        try {
-          const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-          const data = await res.json();
-          if (data.success) {
-            loadAdminUsers();
-          } else {
-            alert(data.message);
-          }
-        } catch (err) {
-          alert('Error deleting user.');
-        }
-      };
-
-      // Edit Modal Controllers
-      window.openEditModal = function(id, username, role, assignedTopics) {
-        document.getElementById('edit-user-id').value = id;
-        document.getElementById('edit-username').value = username;
-        document.getElementById('edit-password').value = '';
-        document.getElementById('edit-role').value = role;
-        document.getElementById('edit-assignedTopics').value = assignedTopics;
-        document.getElementById('editModal').classList.remove('hidden');
-      };
-
-      window.closeEditModal = function() {
-        document.getElementById('editModal').classList.add('hidden');
-      };
-
-      // Edit User Form Submission Handler
-      document.getElementById('editUserForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-user-id').value;
-        const username = document.getElementById('edit-username').value.trim();
-        const password = document.getElementById('edit-password').value.trim();
-        const role = document.getElementById('edit-role').value;
-        const assignedTopics = document.getElementById('edit-assignedTopics').value.trim();
-
-        try {
-          const res = await fetch(`/api/admin/users/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password, role, assignedTopics })
-          });
-          const data = await res.json();
-          if (data.success) {
-            alert('User updated successfully!');
-            closeEditModal();
-            loadAdminUsers();
-          } else {
-            alert(data.message);
-          }
-        } catch (err) {
-          alert('Error updating user.');
-        }
-      });
+      if (typeof lucide !== 'undefined') lucide.createIcons();
     });
   </script>
 </body>

@@ -34,6 +34,14 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // --- REST API ENDPOINTS ---
 
+const adminRoutes = require('./routes/admin');
+app.use('/api/admin', adminRoutes);
+
+// Teacher dashboard
+app.get('/teacher-dashboard', (req, res) => {
+  res.sendFile(__dirname + '/public/teacher.html');
+});
+
 // 1. Admin: Create a new user with assigned topics array
 app.post('/api/admin/users', async (req, res) => {
   const { username, password, role, assignedTopics, assignedQuiz } = req.body;
@@ -193,6 +201,72 @@ function getLocalIpAddress() {
   return 'localhost';
 }
 
+// Add a new question to a specific topic
+app.post('/api/topics/:topicId/questions', async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const { question, options, answer, category } = req.body;
+    
+    // Find highest existing id to increment
+    const lastQuestion = await Question.findOne().sort({ id: -1 });
+    const newId = lastQuestion ? lastQuestion.id + 1 : 1;
+
+    const newQuestion = new Question({
+      id: newId,
+      question: question,
+      options: options, // Array of 4 strings
+      answer: parseInt(answer), // Index 0-3
+      category: topicId || category || 'default'
+    });
+    
+    await newQuestion.save();
+    res.json({ success: true, message: 'Question added successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Middleware & Static Files
+app.use(express.json());
+app.use(express.static(__dirname));
+
+// --- Topic-Specific Question Routes ---
+
+// Get all questions for a specific topic
+app.get('/api/topics/:topicId/questions', async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const questions = await Question.find({ category: topicId });
+    res.json({ success: true, questions });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Add a new question to a specific topic
+app.post('/api/topics/:topicId/questions', async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const { question, options, answer, category } = req.body;
+    
+    const lastQuestion = await Question.findOne().sort({ id: -1 });
+    const newId = lastQuestion ? lastQuestion.id + 1 : 1;
+
+    const newQuestion = new Question({
+      id: newId,
+      question: question,
+      options: options,
+      answer: parseInt(answer),
+      category: topicId || category || 'default'
+    });
+    
+    await newQuestion.save();
+    res.json({ success: true, message: 'Question added successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // SOCKET.IO REAL-TIME GAME LOGIC
 io.on('connection', (socket) => {
   
@@ -347,38 +421,36 @@ io.on('connection', (socket) => {
     room.currentQuestion += 1;
   });
 
-  // --- NEW TEACHER & RAPID-FIRE / PAPER MODE SOCKET HANDLERS ---
-	socket.on('create_teacher_room', async ({ roomId, category, mode }) => {
-	  socket.join(roomId);
+  // --- TEACHER & RAPID-FIRE / PAPER MODE SOCKET HANDLERS ---
+  socket.on('create_teacher_room', async ({ roomId, category, mode }) => {
+    socket.join(roomId);
 
-	  let fetchedQuestions = await Question.find({ category });
-	  if (fetchedQuestions.length === 0) {
-		fetchedQuestions = await Question.find({ category: 'default' });
-	  }
+    let fetchedQuestions = await Question.find({ category });
+    if (fetchedQuestions.length === 0) {
+      fetchedQuestions = await Question.find({ category: 'default' });
+    }
 
-	  const reqHost = socket.handshake.headers.host;
-	  let baseUrl = process.env.PUBLIC_URL || `http://${getLocalIpAddress()}:${PORT}`;
-	  const joinUrl = `${baseUrl}/participant.html?room=${roomId}&category=${category}&mode=${mode}`;
-	  const qrImage = await QRCode.toDataURL(joinUrl);
+    const reqHost = socket.handshake.headers.host;
+    let baseUrl = process.env.PUBLIC_URL || `http://${getLocalIpAddress()}:${PORT}`;
+    const joinUrl = `${baseUrl}/participant.html?room=${roomId}&category=${category}&mode=${mode}`;
+    const qrImage = await QRCode.toDataURL(joinUrl);
 
-	  // Reset or initialize room state with fresh scores/indices
-	  rooms[roomId] = {
-		category,
-		mode, // 'rapid' or 'paper'
-		questions: fetchedQuestions,
-		currentQuestionIndex: 0,
-		players: rooms[roomId] ? rooms[roomId].players : {}, // Retain connected players or clear if preferred
-		answers: {},
-		status: 'waiting'
-	  };
+    rooms[roomId] = {
+      category,
+      mode, 
+      questions: fetchedQuestions,
+      currentQuestionIndex: 0,
+      players: rooms[roomId] ? rooms[roomId].players : {}, 
+      answers: {},
+      status: 'waiting'
+    };
 
-	  // If you want to reset player scores when changing quiz modes, uncomment below:
-	  Object.keys(rooms[roomId].players).forEach(id => {
-		rooms[roomId].players[id].score = 0;
-	  });
+    Object.keys(rooms[roomId].players).forEach(id => {
+      rooms[roomId].players[id].score = 0;
+    });
 
-	  socket.emit('room_ready', { qrCode: qrImage, roomId });
-	});
+    socket.emit('room_ready', { qrCode: qrImage, roomId });
+  });
 
   socket.on('join_teacher_lobby', ({ roomId, name }) => {
     const room = rooms[roomId];
@@ -394,7 +466,7 @@ io.on('connection', (socket) => {
     });
   });
 
-	socket.on('start_teacher_quiz', (roomId) => {
+  socket.on('start_teacher_quiz', (roomId) => {
     const room = rooms[roomId];
     if (!room) return;
 
@@ -404,30 +476,25 @@ io.on('connection', (socket) => {
     if (room.mode === 'rapid') {
       runRapidFireQuestion(roomId);
     } else if (room.mode === 'paper') {
-      // Send all questions at once for Paper Style mode
       io.to(roomId).emit('display_paper_quiz', {
         questions: room.questions
       });
     }
   });
  
-	socket.on('submit_paper_answers', ({ roomId, answers }) => {
+  socket.on('submit_paper_answers', ({ roomId, answers }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
 
     let score = 0;
     room.questions.forEach((q, index) => {
       if (answers[index] === q.answer) {
-        score += 10; // 10 points per correct answer in paper mode
+        score += 10;
       }
     });
 
     room.players[socket.id].score = score;
-
-    // Broadcast updated player scores to the teacher's dashboard
     io.to(roomId).emit('lobby_update', { players: Object.values(room.players) });
-    
-    // Confirm success back to the participant
     socket.emit('paper_submitted_success', { score, total: room.questions.length });
   });
  
