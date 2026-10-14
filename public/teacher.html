@@ -228,44 +228,6 @@
       if (typeof initTeacherDashboard === 'function') {
         initTeacherDashboard(currentUser);
       }
-      
-      // Bulk Upload Event Handler Binding
-      const uploadBulkBtn = document.getElementById('upload-bulk-btn');
-      if (uploadBulkBtn) {
-        uploadBulkBtn.addEventListener('click', async () => {
-          const fileInput = document.getElementById('bulk-file-input');
-          const manageTopicSelect = document.getElementById('teacher-manage-topic-select');
-          const topic = manageTopicSelect ? manageTopicSelect.value : 'default';
-
-          if (!fileInput.files || fileInput.files.length === 0) {
-            alert('Please select an Excel (.xlsx) file first!');
-            return;
-          }
-
-          const formData = new FormData();
-          formData.append('file', fileInput.files[0]);
-
-          try {
-            const res = await fetch(`/api/topics/${encodeURIComponent(topic)}/bulk-upload`, {
-              method: 'POST',
-              body: formData
-            });
-            const data = await res.json();
-
-            if (data.success) {
-              alert(data.message);
-              fileInput.value = '';
-              if (typeof loadQuestionsForTopic === 'function') {
-                loadQuestionsForTopic(topic);
-              }
-            } else {
-              alert(data.message || 'Upload failed');
-            }
-          } catch (err) {
-            alert('Error uploading file.');
-          }
-        });
-      }
 
       // Logout handler
       const logoutBtn = document.getElementById('logout-btn');

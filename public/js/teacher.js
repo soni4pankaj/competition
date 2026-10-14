@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Inject Bulk Upload UI cleanly by finding the Question Bank Manager heading
+  // Inject Bulk Upload UI cleanly if not already present in the DOM
   const headings = Array.from(document.querySelectorAll('h2'));
   const managerHeading = headings.find(h => h.textContent.includes('Topic Question Bank Manager'));
   const questionManagerCard = managerHeading ? managerHeading.closest('.bg-slate-900\\/40') : null;
