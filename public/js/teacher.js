@@ -70,8 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Inject Bulk Upload UI dynamically into the Question Manager section
-  const questionManagerCard = document.querySelector('#teacher-show-questions-btn')?.closest('.bg-slate-900\\/40') || document.querySelector('.bg-slate-900\\/40:nth-child(3)');
+  // Inject Bulk Upload UI cleanly by finding the Question Bank Manager heading
+  const headings = Array.from(document.querySelectorAll('h2'));
+  const managerHeading = headings.find(h => h.textContent.includes('Topic Question Bank Manager'));
+  const questionManagerCard = managerHeading ? managerHeading.closest('.bg-slate-900\\/40') : null;
+
   if (questionManagerCard && !document.getElementById('bulk-upload-container')) {
     const bulkDiv = document.createElement('div');
     bulkDiv.id = 'bulk-upload-container';
