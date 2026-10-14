@@ -155,7 +155,7 @@
     <!-- 3. Active Question View -->
     <div id="question-box" class="hidden">
       <h3 id="question-text">Loading question...</h3>
-      <p style="text-align: right;"><strong>Time Left:</strong> <span id="timer-display">15</span>s</p>
+      <p id="timer-container" style="text-align: right;"><strong>Time Left:</strong> <span id="timer-display">15</span>s</p>
       <div id="options-container"></div>
       <p id="answer-status" class="status-msg"></p>
     </div>
@@ -214,6 +214,7 @@
     const playerDisplayName = document.getElementById('player-display-name');
 
     const questionText = document.getElementById('question-text');
+    const timerContainer = document.getElementById('timer-container');
     const timerDisplay = document.getElementById('timer-display');
     const optionsContainer = document.getElementById('options-container');
     const answerStatus = document.getElementById('answer-status');
@@ -303,8 +304,8 @@
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
 
-      if (timerDisplay && timerDisplay.parentElement) {
-        timerDisplay.parentElement.style.display = 'block';
+      if (timerContainer) {
+        timerContainer.style.display = 'block';
       }
 
       answerStatus.textContent = '';
@@ -326,8 +327,8 @@
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
 
-      if (timerDisplay && timerDisplay.parentElement) {
-        timerDisplay.parentElement.style.display = 'block';
+      if (timerContainer) {
+        timerContainer.style.display = 'block';
       }
 
       answerStatus.textContent = '';
@@ -375,12 +376,10 @@
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
 
-      // Make sure timer display is visible and active
-      if (timerDisplay && timerDisplay.parentElement) {
-        timerDisplay.parentElement.style.display = 'block';
+      if (timerContainer) {
+        timerContainer.style.display = 'block';
       }
 
-      // Calculate time: 30 seconds per question (minimum 120s / 2 minutes)
       let paperTimeLeft = Math.max(questions.length * 30, 120);
 
       if (paperInterval) clearInterval(paperInterval);
