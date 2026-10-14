@@ -332,9 +332,10 @@ io.on('connection', (socket) => {
 
   socket.on('join_room', ({ roomId, name }) => {
     const room = rooms[roomId];
-    if (!room) return socket.emit('error_msg', 'Room not found!');
+    if (!room) return socket.emit('error_msg', 'Room not found! Please wait for host to create room.');
 
     socket.join(roomId);
+    if (!room.players) room.players = {};
     room.players[socket.id] = { id: socket.id, name, score: 0 };
 
     socket.emit('joined_successfully', { roomId, name, mode: room.mode });
@@ -355,28 +356,27 @@ io.on('connection', (socket) => {
     const joinUrl = `${baseUrl}/participant.html?room=${roomId}&category=${category}&mode=${mode}`;
     const qrImage = await QRCode.toDataURL(joinUrl);
 
+    const existingPlayers = rooms[roomId] ? rooms[roomId].players : {};
+
     rooms[roomId] = {
       category,
       mode, 
       questions: fetchedQuestions,
       currentQuestionIndex: 0,
-      players: rooms[roomId] ? rooms[roomId].players : {}, 
+      players: existingPlayers, 
       answers: {},
       status: 'waiting'
     };
-
-    Object.keys(rooms[roomId].players).forEach(id => {
-      rooms[roomId].players[id].score = 0;
-    });
 
     socket.emit('room_ready', { qrCode: qrImage, roomId });
   });
 
   socket.on('join_teacher_lobby', ({ roomId, name }) => {
     const room = rooms[roomId];
-    if (!room) return socket.emit('error_msg', 'Room not found!');
+    if (!room) return socket.emit('error_msg', 'Room not found! Please create the room first.');
 
     socket.join(roomId);
+    if (!room.players) room.players = {};
     room.players[socket.id] = { id: socket.id, name, score: 0 };
 
     io.to(roomId).emit('lobby_update', {
@@ -386,14 +386,22 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('start_teacher_quiz', (roomId) => {
-    const room = rooms[roomId];
+  socket.on('start_teacher_quiz', async (roomId) => {
+    let room = rooms[roomId];
     if (!room) return;
+
+    if (!room.questions || room.questions.length === 0) {
+      room.questions = await Question.find({ category: room.category || 'default' });
+      if (room.questions.length === 0) {
+        room.questions = await Question.find({ category: 'default' });
+      }
+    }
 
     room.status = 'active';
     io.to(roomId).emit('quiz_started', { mode: room.mode, questions: room.questions });
 
     if (room.mode === 'rapid') {
+      room.currentQuestionIndex = 0;
       runRapidFireQuestion(roomId);
     } else if (room.mode === 'paper') {
       const formattedQuestions = room.questions.map(q => ({
@@ -407,7 +415,24 @@ io.on('connection', (socket) => {
       });
     }
   });
- 
+
+  socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
+    const room = rooms[roomId];
+    if (!room || !room.players[socket.id]) return;
+
+    const currentQ = room.questions[room.currentQuestionIndex - 1];
+    if (!currentQ) return;
+
+    const correctAnswer = currentQ.answer !== undefined ? currentQ.answer : currentQ.correctAnswer;
+    const isCorrect = optionIndex === correctAnswer;
+
+    if (isCorrect) {
+      room.players[socket.id].score += 15;
+    }
+
+    socket.emit('answer_feedback', { correct: isCorrect });
+  });
+
   socket.on('submit_paper_answers', ({ roomId, answers }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
@@ -426,6 +451,44 @@ io.on('connection', (socket) => {
   });
 
 });
+
+function runRapidFireQuestion(roomId) {
+  const room = rooms[roomId];
+  if (!room || room.status !== 'active') return;
+
+  if (room.currentQuestionIndex >= room.questions.length) {
+    io.to(roomId).emit('quiz_ended');
+    room.status = 'ended';
+    return;
+  }
+
+  const q = room.questions[room.currentQuestionIndex];
+  room.currentQuestionIndex++;
+
+  io.to(roomId).emit('next_rapid_question', {
+    questionIndex: room.currentQuestionIndex,
+    total: room.questions.length,
+    question: q.question || q.questionText,
+    options: q.options
+  });
+
+  // Example duration per question for rapid fire: 15 seconds
+  let timeLeft = 15;
+  if (questionTimer) clearInterval(questionTimer);
+
+  questionTimer = setInterval(() => {
+    timeLeft--;
+    io.to(roomId).emit('timer_tick', timeLeft);
+
+    if (timeLeft <= 0) {
+      clearInterval(questionTimer);
+      // Automatically proceed to next rapid question after break
+      setTimeout(() => {
+        runRapidFireQuestion(roomId);
+      }, 3000);
+    }
+  }, 1000);
+}
 
 const PORT = process.env.PORT || 4000;
 const HOST = '0.0.0.0';
