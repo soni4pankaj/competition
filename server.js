@@ -396,8 +396,14 @@ io.on('connection', (socket) => {
     if (room.mode === 'rapid') {
       runRapidFireQuestion(roomId);
     } else if (room.mode === 'paper') {
+      const formattedQuestions = room.questions.map(q => ({
+        question: q.question || q.questionText,
+        options: q.options,
+        answer: q.answer !== undefined ? q.answer : q.correctAnswer
+      }));
+
       io.to(roomId).emit('display_paper_quiz', {
-        questions: room.questions
+        questions: formattedQuestions
       });
     }
   });
@@ -408,7 +414,8 @@ io.on('connection', (socket) => {
 
     let score = 0;
     room.questions.forEach((q, index) => {
-      if (answers[index] === q.answer) {
+      const correctAnswer = q.answer !== undefined ? q.answer : q.correctAnswer;
+      if (answers[index] === correctAnswer) {
         score += 10;
       }
     });
