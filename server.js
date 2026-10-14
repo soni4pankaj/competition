@@ -416,7 +416,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
+socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
 
@@ -431,8 +431,12 @@ io.on('connection', (socket) => {
     }
 
     socket.emit('answer_feedback', { correct: isCorrect });
+    
+    // Broadcast live leaderboard update during rapid-fire round
+    io.to(roomId).emit('leaderboard_data', getSortedLeaderboard(room));
   });
-
+  
+  
   socket.on('submit_paper_answers', ({ roomId, answers }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
@@ -457,6 +461,7 @@ function runRapidFireQuestion(roomId) {
   if (!room || room.status !== 'active') return;
 
   if (room.currentQuestionIndex >= room.questions.length) {
+    io.to(roomId).emit('leaderboard_data', getSortedLeaderboard(room));
     io.to(roomId).emit('quiz_ended');
     room.status = 'ended';
     return;
@@ -472,7 +477,6 @@ function runRapidFireQuestion(roomId) {
     options: q.options
   });
 
-  // Example duration per question for rapid fire: 15 seconds
   let timeLeft = 15;
   if (questionTimer) clearInterval(questionTimer);
 
@@ -482,13 +486,14 @@ function runRapidFireQuestion(roomId) {
 
     if (timeLeft <= 0) {
       clearInterval(questionTimer);
-      // Automatically proceed to next rapid question after break
+      io.to(roomId).emit('leaderboard_data', getSortedLeaderboard(room));
       setTimeout(() => {
         runRapidFireQuestion(roomId);
       }, 3000);
     }
   }, 1000);
 }
+
 
 const PORT = process.env.PORT || 4000;
 const HOST = '0.0.0.0';
