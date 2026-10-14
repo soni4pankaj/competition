@@ -70,6 +70,67 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  // Inject Bulk Upload UI dynamically into the Question Manager section
+  const questionManagerCard = document.querySelector('#teacher-show-questions-btn')?.closest('.bg-slate-900\\/40') || document.querySelector('.bg-slate-900\\/40:nth-child(3)');
+  if (questionManagerCard && !document.getElementById('bulk-upload-container')) {
+    const bulkDiv = document.createElement('div');
+    bulkDiv.id = 'bulk-upload-container';
+    bulkDiv.className = 'p-4 rounded-2xl bg-slate-950/40 border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 mt-4';
+    bulkDiv.innerHTML = `
+      <div>
+        <h3 class="text-xs font-semibold text-white flex items-center gap-1.5">
+          <span>📁 Bulk Upload Questions (Excel .xlsx)</span>
+        </h3>
+        <p class="text-[10px] text-slate-400 mt-0.5">Columns required: <code class="text-purple-300">question, option1, option2, option3, option4, answer (0-3)</code></p>
+      </div>
+      <div class="flex items-center gap-2 w-full md:w-auto">
+        <input type="file" id="bulk-file-input" accept=".xlsx, .xls" class="text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer" />
+        <button id="upload-bulk-btn" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition-all">
+          Upload Excel
+        </button>
+      </div>
+    `;
+    
+    const tableWrapper = questionManagerCard.querySelector('.rounded-2xl.border');
+    if (tableWrapper) {
+      questionManagerCard.insertBefore(bulkDiv, tableWrapper);
+    } else {
+      questionManagerCard.appendChild(bulkDiv);
+    }
+
+    document.getElementById('upload-bulk-btn').addEventListener('click', async () => {
+      const fileInput = document.getElementById('bulk-file-input');
+      const manageTopicSelect = document.getElementById('teacher-manage-topic-select');
+      const topic = manageTopicSelect ? manageTopicSelect.value : 'default';
+
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please select an Excel (.xlsx) file first!');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const res = await fetch(`/api/topics/${encodeURIComponent(topic)}/bulk-upload`, {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          alert(data.message);
+          fileInput.value = '';
+          loadQuestionsForTopic(topic);
+        } else {
+          alert(data.message || 'Upload failed');
+        }
+      } catch (err) {
+        alert('Error uploading file.');
+      }
+    });
+  }
+
   // Socket listeners for teacher room & lobby updates
   setTimeout(() => {
     if (typeof socket !== 'undefined') {
@@ -202,7 +263,7 @@ function openQuestionModal(question = null) {
   for (let i = 0; i < 4; i++) {
     document.getElementById(`modal-option-${i}`).value = question && question.options ? question.options[i] : '';
   }
-  document.getElementById('modal-correct-answer').value = question ? (question.answer !== undefined ? question.answer : q.correctAnswer) : '0';
+  document.getElementById('modal-correct-answer').value = question ? (question.answer !== undefined ? question.answer : question.correctAnswer) : '0';
   
   title.textContent = question ? 'Edit Question' : 'Add New Question';
   modal.classList.remove('hidden');
