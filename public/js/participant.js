@@ -336,11 +336,18 @@ document.addEventListener('DOMContentLoaded', () => {
 	  });
   
 
-  socket.on('timer_tick', (timeLeft) => {
-    if (!paperInterval) {
-      timerDisplay.textContent = timeLeft;
-    }
-  });
+	socket.on('timer_tick', (timeLeft) => {
+		if (!paperInterval) {
+		  timerDisplay.textContent = timeLeft;
+		  
+		  // If time runs out, disable options immediately
+		  if (timeLeft <= 0) {
+			disableAllOptions();
+			answerStatus.textContent = "Time's up! Waiting for next question...";
+		  }
+		}
+	  });
+  
 
   socket.on('quiz_ended', () => {
     if (paperInterval) clearInterval(paperInterval);
@@ -359,4 +366,14 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
   });
 });
-```[cite: 5]
+
+// Helper to disable options when time expires
+  function disableAllOptions() {
+    const buttons = optionsContainer.querySelectorAll('button');
+    buttons.forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'not-allowed';
+    });
+  }
+  

@@ -357,7 +357,7 @@ function showTeacherPodiumModal(leaderboard) {
         <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="flex justify-center mb-2">
-          <img src="/public/images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
+          <img src="../images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
         </div>
 
         <div>
@@ -369,7 +369,7 @@ function showTeacherPodiumModal(leaderboard) {
           
           <!-- 2nd Place -->
           <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center space-y-1 shadow-md transform -translate-y-2">
-            <span class="text-2xl">🥈</span>
+            <span class="text-3xl animate-bounce"><img src="../images/rank-2.png" alt="1st Place" class="w-16 h-16 object-contain mb-1 animate-bounce" /></span>
             <div class="text-[11px] font-semibold text-slate-300 truncate w-full" title="${top2.name}">${top2.name}</div>
             <div class="text-xs font-bold text-slate-200">${top2.score} pts</div>
             <div class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">2nd Place</div>
@@ -377,7 +377,7 @@ function showTeacherPodiumModal(leaderboard) {
 
           <!-- 1st Place -->
           <div class="p-5 rounded-2xl bg-gradient-to-b from-amber-500/20 to-purple-600/20 border border-amber-500/40 flex flex-col items-center justify-center space-y-1.5 shadow-xl transform -translate-y-4">
-            <span class="text-3xl animate-bounce">🥇</span>
+            <span class="text-3xl animate-bounce"><img src="../images/rank-1.png" alt="1st Place" class="w-16 h-16 object-contain mb-1 animate-bounce" /></span>
             <div class="text-xs font-bold text-white truncate w-full" title="${top1.name}">${top1.name}</div>
             <div class="text-sm font-extrabold text-amber-300">${top1.score} pts</div>
             <div class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">1st Place</div>
@@ -385,7 +385,7 @@ function showTeacherPodiumModal(leaderboard) {
 
           <!-- 3rd Place -->
           <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center space-y-1 shadow-md">
-            <span class="text-2xl">🥉</span>
+            <span class="text-3xl animate-bounce"><img src="../images/rank-3.png" alt="1st Place" class="w-16 h-16 object-contain mb-1 animate-bounce" /></span>
             <div class="text-[11px] font-semibold text-slate-300 truncate w-full" title="${top3.name}">${top3.name}</div>
             <div class="text-xs font-bold text-slate-200">${top3.score} pts</div>
             <div class="text-[9px] uppercase tracking-wider text-amber-600 font-bold">3rd Place</div>
