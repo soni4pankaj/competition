@@ -141,12 +141,12 @@
         <ol>
           <li>Connect to the Wifi</li>
           <li>Enter your full name</li>
-          <li>Time allotted to answer the question is max 15 seconds</li>
-          <li>Full score i.e. 15 marks awarded if correct answer in 5 seconds</li>
-          <li>Score 10 is awarded if correct answer in 10 seconds</li>
-          <li>Score 5 is awarded if correct answer in 15 seconds</li>
+          <li>Time allotted to answer the question is max 20 seconds</li>
+          <li>Full score i.e. 15 marks awarded if correct answer in 10 seconds</li>
+          <li>Score 10 is awarded if correct answer in 11-15 seconds</li>
+          <li>Score 5 is awarded if correct answer in Remaining Time</li>
           <li>Negative score of 5 for each wrong answer</li>
-          <li>There are 15 questions in the quiz</li>
+          <li>There are <span id="total-questions-count">15</span> questions in the quiz</li>
         </ol>
       </div>
     </div>
@@ -508,16 +508,16 @@
       }
     });
 
-	socket.on('answer_feedback', ({ correct, score }) => {
+	socket.on('answer_feedback', ({ correct, score, earned }) => {
 		if (correct) {
-		  answerStatus.textContent = 'Correct Answer! 🎉 (+15 pts)';
+		  answerStatus.textContent = `Correct Answer! 🎉 (+${earned} pts)`;
 		  playSoundEffect(correctSfx);
 		  if (selectedBtnRef) {
 			selectedBtnRef.style.backgroundColor = '#28a745';
 			selectedBtnRef.style.color = '#fff';
 		  }
 		} else {
-		  answerStatus.textContent = 'Incorrect Answer! ❌';
+		  answerStatus.textContent = `Incorrect Answer! ❌ (${earned} pts)`;
 		  playSoundEffect(wrongSfx);
 		  if (selectedBtnRef) {
 			selectedBtnRef.style.backgroundColor = '#dc3545';
@@ -525,7 +525,6 @@
 		  }
 		}
 
-		// Update both the live question view score and final scoreboard view score
 		const liveScoreEl = document.getElementById('live-my-score');
 		if (liveScoreEl && score !== undefined) {
 		  liveScoreEl.textContent = score;
@@ -535,8 +534,7 @@
 		if (myScoreEl && score !== undefined) {
 		  myScoreEl.textContent = score;
 		}
-	  });
-  
+	  });  
 
     socket.on('timer_tick', (timeLeft) => {
       if (!paperInterval) {

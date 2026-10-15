@@ -411,7 +411,8 @@ io.on('connection', (socket) => {
       }));
 
       io.to(roomId).emit('display_paper_quiz', {
-        questions: formattedQuestions
+        questions: formattedQuestions,
+		totalQuestions: room.questions.length
       });
     }
   });
