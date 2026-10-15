@@ -296,3 +296,19 @@ window.deleteQuestion = async function(id) {
     alert('Error deleting question');
   }
 };
+
+// Add inside teacher.js socket initialization block
+socket.on('teacher_leaderboard_update', (leaderboard) => {
+  const list = document.getElementById('lobby-student-list'); // Or a dedicated teacher leaderboard container
+  if (list) {
+    list.innerHTML = '';
+    leaderboard.forEach((p, index) => {
+      list.innerHTML += `
+        <li class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-200 mb-1">
+          <span class="font-semibold">#${index + 1} ${p.name}</span>
+          <span class="font-bold text-white">${p.score} pts</span>
+        </li>
+      `;
+    });
+  }
+});

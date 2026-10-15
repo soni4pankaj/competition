@@ -416,7 +416,7 @@ io.on('connection', (socket) => {
     }
   });
 
-socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
+  socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
 
@@ -430,12 +430,12 @@ socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
       room.players[socket.id].score += 15;
     }
 
-    socket.emit('answer_feedback', { correct: isCorrect });
+	// Send individual feedback AND their updated score back to the participant
+	socket.emit('answer_feedback', { correct: isCorrect, score: room.players[socket.id].score });
     
-    // Broadcast live leaderboard update during rapid-fire round
-    io.to(roomId).emit('leaderboard_data', getSortedLeaderboard(room));
+    // Send updated scores to the teacher dashboard only (avoiding participant screen disruption)
+    io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
   });
-  
   
   socket.on('submit_paper_answers', ({ roomId, answers }) => {
     const room = rooms[roomId];
@@ -451,6 +451,7 @@ socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
 
     room.players[socket.id].score = score;
     io.to(roomId).emit('lobby_update', { players: Object.values(room.players) });
+    io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
     socket.emit('paper_submitted_success', { score, total: room.questions.length });
   });
 
@@ -461,7 +462,7 @@ function runRapidFireQuestion(roomId) {
   if (!room || room.status !== 'active') return;
 
   if (room.currentQuestionIndex >= room.questions.length) {
-    io.to(roomId).emit('leaderboard_data', getSortedLeaderboard(room));
+    io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
     io.to(roomId).emit('quiz_ended');
     room.status = 'ended';
     return;
@@ -486,14 +487,13 @@ function runRapidFireQuestion(roomId) {
 
     if (timeLeft <= 0) {
       clearInterval(questionTimer);
-      io.to(roomId).emit('leaderboard_data', getSortedLeaderboard(room));
+      io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
       setTimeout(() => {
         runRapidFireQuestion(roomId);
       }, 3000);
     }
   }, 1000);
 }
-
 
 const PORT = process.env.PORT || 4000;
 const HOST = '0.0.0.0';

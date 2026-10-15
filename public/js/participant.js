@@ -4,106 +4,359 @@ document.addEventListener('DOMContentLoaded', () => {
   window.loadedQuestions = [];
   window.timerInterval = null;
 
-  // Timer Countdown Function
-  function startQuizTimer(durationInSeconds) {
-    let timer = durationInSeconds;
-    const timerDisplay = document.getElementById('time-remaining');
-    
-    if (window.timerInterval) clearInterval(window.timerInterval);
+  // Audio Elements
+  const bgMusic = document.getElementById('bg-music');
+  const correctSfx = document.getElementById('correct-sfx');
+  const wrongSfx = document.getElementById('wrong-sfx');
 
-    window.timerInterval = setInterval(() => {
-      let minutes = Math.floor(timer / 60);
-      let seconds = timer % 60;
+  // DOM Elements
+  const joinBox = document.getElementById('join-box');
+  const waitingBox = document.getElementById('waiting-box');
+  const questionBox = document.getElementById('question-box');
+  const scoreboardBox = document.getElementById('scoreboard-box');
 
-      minutes = minutes < 10 ? '0' + minutes : minutes;
-      seconds = seconds < 10 ? '0' + seconds : seconds;
+  const roomInput = document.getElementById('room-input');
+  const nameInput = document.getElementById('name-input');
+  const joinBtn = document.getElementById('join-btn');
+  const errorMsg = document.getElementById('error-msg');
+  const playerDisplayName = document.getElementById('player-display-name');
 
-      if (timerDisplay) timerDisplay.textContent = `${minutes}:${seconds}`;
+  const questionText = document.getElementById('question-text');
+  const timerContainer = document.getElementById('timer-container');
+  const timerDisplay = document.getElementById('timer-display');
+  const optionsContainer = document.getElementById('options-container');
+  const answerStatus = document.getElementById('answer-status');
+  const scoreList = document.getElementById('score-list');
 
-      if (--timer < 0) {
-        clearInterval(window.timerInterval);
-        alert('Time is up! Submitting your quiz automatically.');
-        if (typeof window.submitQuiz === 'function') window.submitQuiz();
-      }
-    }, 1000);
+  const paperTimerContainer = document.getElementById('paper-timer-container');
+  const paperTimerDisplay = document.getElementById('paper-timer-display');
+
+  let currentRoomId = '';
+  let selectedBtnRef = null;
+  let roomGameMode = 'manual';
+  let paperInterval = null;
+
+  // Helper: Play SFX and duck background music volume
+  function playSoundEffect(audioElement) {
+    if (!audioElement) return;
+
+    if (bgMusic && !bgMusic.paused) {
+      bgMusic.volume = 0.2;
+    }
+
+    audioElement.currentTime = 0;
+    audioElement.play().catch(err => console.log('SFX Play error:', err));
+
+    audioElement.onended = () => {
+      if (bgMusic) bgMusic.volume = 1.0;
+    };
   }
 
-  // Load Participant Quiz based on Assigned Category
-  window.loadParticipantQuiz = async function(category) {
-    try {
-      const res = await fetch(`/api/questions?category=${category}`);
-      const data = await res.json();
-      
-      window.loadedQuestions = data.questions || [];
-      const titleEl = document.getElementById('quiz-category-title');
-      if (titleEl) titleEl.textContent = `Assigned Category: ${data.category.toUpperCase()}`;
-      
-      const container = document.getElementById('quiz-container');
-      if (!container) return;
-      container.innerHTML = '';
+  // Automatically grab Room ID and Mode from URL query parameters (QR code)
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomParam = urlParams.get('room');
+  const modeParam = urlParams.get('mode');
+  if (roomParam) {
+    roomInput.value = roomParam;
+  }
+  if (modeParam) {
+    roomGameMode = modeParam;
+  }
 
-      if (window.loadedQuestions.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No questions found for this category.</p>`;
-        const submitContainer = document.getElementById('submit-btn-container');
-        if (submitContainer) submitContainer.classList.add('hidden');
+  // 1. Join Room / Register Button Action
+  joinBtn.addEventListener('click', () => {
+    const roomId = roomInput.value.trim();
+    const name = nameInput.value.trim();
+
+    if (!roomId) {
+      errorMsg.textContent = 'Invalid room link. Please re-scan the QR code!';
+      return;
+    }
+
+    if (!name) {
+      errorMsg.textContent = 'Please enter your name!';
+      return;
+    }
+
+    if (bgMusic) {
+      bgMusic.volume = 1.0;
+      bgMusic.play().catch(err => console.log('Autoplay prevented:', err));
+    }
+
+    currentRoomId = roomId;
+
+    socket.emit('join_room', { roomId, name });
+    socket.emit('join_teacher_lobby', { roomId, name });
+
+    playerDisplayName.textContent = name;
+    joinBox.classList.add('hidden');
+    waitingBox.classList.remove('hidden');
+  });
+
+  // 2. Successful Join Listeners
+  socket.on('lobby_update', () => {
+    waitingBox.classList.remove('hidden');
+  });
+
+  socket.on('joined_successfully', ({ roomId, name, mode }) => {
+    playerDisplayName.textContent = name;
+    joinBox.classList.add('hidden');
+    waitingBox.classList.remove('hidden');
+
+    if (mode) {
+      roomGameMode = mode;
+    }
+  });
+
+  socket.on('error_msg', (msg) => {
+    errorMsg.textContent = msg;
+  });
+
+  // 3. Question Display Listeners
+  socket.on('display_question', (data) => {
+    if (paperInterval) clearInterval(paperInterval);
+    if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+    
+    waitingBox.classList.add('hidden');
+    scoreboardBox.classList.add('hidden');
+    questionBox.classList.remove('hidden');
+
+    if (timerContainer) {
+      timerContainer.style.display = 'block';
+    }
+
+    answerStatus.textContent = '';
+    questionText.textContent = `Q${data.questionNumber}: ${data.question}`;
+    
+    optionsContainer.innerHTML = '';
+    data.options.forEach((opt, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => submitAnswer(index, btn));
+      optionsContainer.appendChild(btn);
+    });
+  });
+
+  socket.on('next_rapid_question', (data) => {
+    if (paperInterval) clearInterval(paperInterval);
+    if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
+    waitingBox.classList.add('hidden');
+    scoreboardBox.classList.add('hidden');
+    questionBox.classList.remove('hidden');
+
+    if (timerContainer) {
+      timerContainer.style.display = 'block';
+    }
+
+    answerStatus.textContent = '';
+    questionText.textContent = `Q${data.questionIndex}/${data.total}: ${data.question}`;
+    
+    optionsContainer.innerHTML = '';
+    data.options.forEach((opt, index) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => submitRapidAnswer(index, btn));
+      optionsContainer.appendChild(btn);
+    });
+  });
+
+  function submitAnswer(selectedIndex, clickedBtn) {
+    selectedBtnRef = clickedBtn;
+    const buttons = optionsContainer.querySelectorAll('button');
+    buttons.forEach(btn => btn.disabled = true);
+    clickedBtn.style.backgroundColor = '#ffc107';
+    clickedBtn.style.color = '#000';
+
+    socket.emit('submit_answer', {
+      roomId: currentRoomId,
+      selectedOption: selectedIndex
+    });
+  }
+
+  function submitRapidAnswer(selectedIndex, clickedBtn) {
+    selectedBtnRef = clickedBtn;
+    const buttons = optionsContainer.querySelectorAll('button');
+    buttons.forEach(btn => btn.disabled = true);
+    clickedBtn.style.backgroundColor = '#ffc107';
+    clickedBtn.style.color = '#000';
+
+    socket.emit('submit_rapid_answer', {
+      roomId: currentRoomId,
+      optionIndex: selectedIndex
+    });
+  }
+
+  // Paper Style Mode Listener with Active Countdown Timer
+  socket.on('display_paper_quiz', ({ questions }) => {
+    waitingBox.classList.add('hidden');
+    scoreboardBox.classList.add('hidden');
+    questionBox.classList.remove('hidden');
+
+    if (timerContainer) {
+      timerContainer.style.display = 'none'; // Hide rapid timer
+    }
+
+    if (paperTimerContainer) {
+      paperTimerContainer.classList.remove('hidden');
+      paperTimerContainer.style.display = 'block';
+    }
+
+    let paperTimeLeft = Math.max(questions.length * 30, 120);
+
+    if (paperInterval) clearInterval(paperInterval);
+    paperInterval = setInterval(() => {
+      let mins = Math.floor(paperTimeLeft / 60);
+      let secs = paperTimeLeft % 60;
+      if (paperTimerDisplay) {
+        paperTimerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      }
+
+      if (paperTimeLeft <= 0) {
+        clearInterval(paperInterval);
+        alert('Time is up! Automatically submitting your paper.');
+        window.submitPaperAnswers();
+      }
+      paperTimeLeft--;
+    }, 1000);
+
+    questionText.innerHTML = `<h3 style="color: #007bff; text-align: center; margin-bottom: 5px;">📝 Paper Style Exam</h3>`;
+    
+    let htmlContent = '';
+    questions.forEach((q, qIndex) => {
+      let optionsHtml = q.options.map((opt, optIdx) => `
+        <label style="display: block; margin: 8px 0; cursor: pointer; padding: 8px; background: #fff; border-radius: 4px; border: 1px solid #ccc;">
+          <input type="radio" name="paper-q-${qIndex}" value="${optIdx}" style="margin-right: 8px;"> ${opt}
+        </label>
+      `).join('');
+
+      htmlContent += `
+        <div style="background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ddd;">
+          <p><strong>Q${qIndex + 1}: ${q.question}</strong></p>
+          ${optionsHtml}
+        </div>
+      `;
+    });
+
+    htmlContent += `<button type="button" onclick="submitPaperAnswers()" style="background: #28a745; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px;">Submit Paper</button>`;
+    optionsContainer.innerHTML = htmlContent;
+
+    window.submitPaperAnswers = function() {
+      if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+      
+      const userAnswers = {};
+      let answeredCount = 0;
+
+      questions.forEach((_, qIndex) => {
+        const selected = document.querySelector(`input[name="paper-q-${qIndex}"]:checked`);
+        if (selected) {
+          userAnswers[qIndex] = parseInt(selected.value);
+          answeredCount++;
+        } else {
+          userAnswers[qIndex] = null;
+        }
+      });
+
+      if (answeredCount === 0 && !confirm('You have not answered any questions. Do you still want to submit?')) {
         return;
       }
 
-      window.loadedQuestions.forEach((q, index) => {
-        let optionsHtml = q.options.map((opt, optIdx) => `
-          <label class="block p-3 rounded-xl bg-slate-950/40 border border-white/5 hover:border-purple-500/50 cursor-pointer text-xs text-slate-200 transition-all">
-            <input type="radio" name="question-${index}" value="${optIdx}" class="mr-2 accent-purple-500">
-            ${opt}
-          </label>
-        `).join('');
+      socket.emit('submit_paper_answers', { roomId: currentRoomId, answers: userAnswers });
+    };
+  });
 
-        container.innerHTML += `
-          <div class="p-6 rounded-2xl border border-white/10 bg-slate-900/40 backdrop-blur-xl space-y-3">
-            <h3 class="text-sm font-semibold text-white">Q${index + 1}. ${q.question}</h3>
-            <div class="space-y-2">${optionsHtml}</div>
-          </div>
-        `;
-      });
+  socket.on('paper_submitted_success', ({ score, total }) => {
+    if (paperInterval) clearInterval(paperInterval);
+    if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
 
-      startQuizTimer(120);
-
-    } catch (err) {
-      console.error('Failed to load quiz questions:', err);
-    }
-  };
-
-  // Reusable Quiz Submission & Scoring Function
-  window.submitQuiz = function() {
-    if (window.timerInterval) clearInterval(window.timerInterval);
-
-    let score = 0;
-    let total = window.loadedQuestions.length;
-
-    window.loadedQuestions.forEach((q, index) => {
-      const selectedOption = document.querySelector(`input[name="question-${index}"]:checked`);
-      if (selectedOption) {
-        const selectedVal = parseInt(selectedOption.value);
-        if (selectedVal === q.answer) {
-          score++;
-        }
-      }
-    });
-
-    const quizContainer = document.getElementById('quiz-container');
-    const submitBtnContainer = document.getElementById('submit-btn-container');
-    const scoreText = document.getElementById('quiz-score-text');
-    const resultCard = document.getElementById('quiz-result-card');
-
-    if (quizContainer) quizContainer.classList.add('hidden');
-    if (submitBtnContainer) submitBtnContainer.classList.add('hidden');
-    if (scoreText) scoreText.textContent = `You scored ${score} out of ${total} correct!`;
-    if (resultCard) resultCard.classList.remove('hidden');
+    questionBox.classList.add('hidden');
+    scoreboardBox.classList.remove('hidden');
     
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-  };
+    const manualNotice = document.getElementById('manual-wait-notice');
+    if (manualNotice) manualNotice.classList.add('hidden');
 
-  const submitQuizBtn = document.getElementById('submit-quiz-btn');
-  if (submitQuizBtn) {
-    submitQuizBtn.addEventListener('click', window.submitQuiz);
-  }
+    const myScoreEl = document.getElementById('my-score');
+    if (myScoreEl) myScoreEl.textContent = score;
+
+    answerStatus.textContent = `Quiz Completed! You scored ${score} out of ${total * 10} points.`;
+    
+    const scoreboardTitle = document.getElementById('scoreboard-title');
+    if (scoreboardTitle) scoreboardTitle.textContent = "🎉 Paper Exam Finished! 🎉";
+  });
+
+  // 4. Answer Confirmation & Audio SFX Feedbacks
+  socket.on('answer_confirmed', ({ isCorrect } = {}) => {
+    if (isCorrect === true) {
+      answerStatus.textContent = 'Correct Answer! 🎉';
+      playSoundEffect(correctSfx);
+      if (selectedBtnRef) {
+        selectedBtnRef.style.backgroundColor = '#28a745';
+        selectedBtnRef.style.color = '#fff';
+      }
+    } else if (isCorrect === false) {
+      answerStatus.textContent = 'Incorrect Answer! ❌';
+      playSoundEffect(wrongSfx);
+      if (selectedBtnRef) {
+        selectedBtnRef.style.backgroundColor = '#dc3545';
+        selectedBtnRef.style.color = '#fff';
+      }
+    }
+  });
+
+	socket.on('answer_feedback', ({ correct, score }) => {
+		if (correct) {
+		  answerStatus.textContent = 'Correct Answer! 🎉 (+15 pts)';
+		  playSoundEffect(correctSfx);
+		  if (selectedBtnRef) {
+			selectedBtnRef.style.backgroundColor = '#28a745';
+			selectedBtnRef.style.color = '#fff';
+		  }
+		} else {
+		  answerStatus.textContent = 'Incorrect Answer! ❌';
+		  playSoundEffect(wrongSfx);
+		  if (selectedBtnRef) {
+			selectedBtnRef.style.backgroundColor = '#dc3545';
+			selectedBtnRef.style.color = '#fff';
+		  }
+		}
+
+		// Update both the live question view score and scoreboard view score
+		const liveScoreEl = document.getElementById('live-my-score');
+		if (liveScoreEl && score !== undefined) {
+		  liveScoreEl.textContent = score;
+		}
+
+		const myScoreEl = document.getElementById('my-score');
+		if (myScoreEl && score !== undefined) {
+		  myScoreEl.textContent = score;
+		}
+	  });
+  
+
+  socket.on('timer_tick', (timeLeft) => {
+    if (!paperInterval) {
+      timerDisplay.textContent = timeLeft;
+    }
+  });
+
+  socket.on('quiz_ended', () => {
+    if (paperInterval) clearInterval(paperInterval);
+    if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
+    if (bgMusic) {
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
+    }
+    document.querySelector('.container').innerHTML = `
+      <h1 style="color: #007bff; text-align: center;">Knowledge Quiz</h1>
+      <div style="text-align: center; margin-top: 40px; padding: 20px;">
+        <h2 style="color: #007bff; font-size: 24px;">🎉 Quiz Completed! 🎉</h2>
+        <p style="font-size: 18px; color: #555; margin-top: 15px;">Thank you for participating!</p>
+      </div>
+    `;
+  });
 });
+```[cite: 5]

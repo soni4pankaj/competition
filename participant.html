@@ -157,14 +157,19 @@
       <p class="status-msg">Waiting for the master to start the question...</p>
     </div>
 
-    <!-- 3. Active Question View -->
-    <div id="question-box" class="hidden">
-      <h3 id="question-text">Loading question...</h3>
-      <p id="timer-container" style="text-align: right;"><strong>Time Left:</strong> <span id="timer-display">15</span>s</p>
-      <div id="options-container"></div>
-      <p id="answer-status" class="status-msg"></p>
-    </div>
+	<!-- 3. Active Question View -->
+		<div id="question-box" class="hidden">
+		  <!-- Add live score display here -->
+		  <div style="background: #e7f3ff; border: 1px solid #b6d4fe; padding: 8px; border-radius: 5px; text-align: center; margin-bottom: 10px; font-weight: bold; color: #004085;">
+			Your Current Score: <span id="live-my-score">0</span> pts
+		  </div>
 
+		  <h3 id="question-text">Loading question...</h3>
+		  <p id="timer-container" style="text-align: right;"><strong>Time Left:</strong> <span id="timer-display">15</span>s</p>
+		  <div id="options-container"></div>
+		  <p id="answer-status" class="status-msg"></p>
+		</div>
+	
     <!-- 4. Scoreboard / Leaderboard View -->
     <div id="scoreboard-box" class="hidden">
       <h2 id="scoreboard-title">Leaderboard</h2>
@@ -503,23 +508,35 @@
       }
     });
 
-    socket.on('answer_feedback', ({ correct }) => {
-      if (correct) {
-        answerStatus.textContent = 'Correct Answer! 🎉';
-        playSoundEffect(correctSfx);
-        if (selectedBtnRef) {
-          selectedBtnRef.style.backgroundColor = '#28a745';
-          selectedBtnRef.style.color = '#fff';
-        }
-      } else {
-        answerStatus.textContent = 'Incorrect Answer! ❌';
-        playSoundEffect(wrongSfx);
-        if (selectedBtnRef) {
-          selectedBtnRef.style.backgroundColor = '#dc3545';
-          selectedBtnRef.style.color = '#fff';
-        }
-      }
-    });
+	socket.on('answer_feedback', ({ correct, score }) => {
+		if (correct) {
+		  answerStatus.textContent = 'Correct Answer! 🎉 (+15 pts)';
+		  playSoundEffect(correctSfx);
+		  if (selectedBtnRef) {
+			selectedBtnRef.style.backgroundColor = '#28a745';
+			selectedBtnRef.style.color = '#fff';
+		  }
+		} else {
+		  answerStatus.textContent = 'Incorrect Answer! ❌';
+		  playSoundEffect(wrongSfx);
+		  if (selectedBtnRef) {
+			selectedBtnRef.style.backgroundColor = '#dc3545';
+			selectedBtnRef.style.color = '#fff';
+		  }
+		}
+
+		// Update both the live question view score and final scoreboard view score
+		const liveScoreEl = document.getElementById('live-my-score');
+		if (liveScoreEl && score !== undefined) {
+		  liveScoreEl.textContent = score;
+		}
+
+		const myScoreEl = document.getElementById('my-score');
+		if (myScoreEl && score !== undefined) {
+		  myScoreEl.textContent = score;
+		}
+	  });
+  
 
     socket.on('timer_tick', (timeLeft) => {
       if (!paperInterval) {
