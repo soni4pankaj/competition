@@ -377,3 +377,45 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
+socket.on('participant_final_results', (leaderboard) => {
+    if (paperInterval) clearInterval(paperInterval);
+    if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
+    questionBox.classList.add('hidden');
+    waitingBox.classList.add('hidden');
+    scoreboardBox.classList.remove('hidden');
+
+    const manualNotice = document.getElementById('manual-wait-notice');
+    if (manualNotice) manualNotice.classList.add('hidden');
+
+    // Find current participant's rank and stats
+    const myIndex = leaderboard.findIndex(p => p.id === socket.id);
+    const me = leaderboard[myIndex] || { score: 0, totalTime: 0 };
+
+    const myScoreEl = document.getElementById('my-score');
+    if (myScoreEl) myScoreEl.textContent = me.score;
+
+    const scoreboardTitle = document.getElementById('scoreboard-title');
+    if (scoreboardTitle) scoreboardTitle.textContent = `🎉 Quiz Completed! You finished at Rank #${myIndex + 1} 🎉`;
+
+    // Render full winner ranking list for participants
+    scoreList.innerHTML = leaderboard.map((p, index) => {
+      const isMe = p.id === socket.id;
+      let rankIcon = `#${index + 1}`;
+      if (index === 0) rankIcon = '🥇';
+      if (index === 1) rankIcon = '🥈';
+      if (index === 2) rankIcon = '🥉';
+
+      return `
+        <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; margin: 6px 0; border-radius: 6px; ${isMe ? 'font-weight: bold; background: #d1ecf1; border: 1px solid #bee5eb;' : 'background: #e9ecef;'}">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span><strong>${rankIcon}</strong></span>
+            <span>${p.name} ${isMe ? '(You)' : ''}</span>
+          </div>
+          <div style="text-align: right;">
+            <strong>${p.score}</strong> pts <br><small style="color: #666;">(${p.totalTime || 0}s)</small>
+          </div>
+        </li>
+      `;
+    }).join('');
+  });

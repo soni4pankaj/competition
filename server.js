@@ -504,7 +504,10 @@ function runRapidFireQuestion(roomId) {
   answeredParticipants.clear();
   
   if (room.currentQuestionIndex >= room.questions.length) {
-    io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
+//    io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
+	io.to(roomId).emit('teacher_leaderboard_update', finalLeaderboard);
+    io.to(roomId).emit('participant_final_results', finalLeaderboard); // Send final results to participants
+	
     io.to(roomId).emit('quiz_ended');
     room.status = 'ended';
     return;
