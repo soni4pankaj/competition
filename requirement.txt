@@ -1,1 +1,5 @@
-now just think that its a project of school handled by admin. now admin can assign teacher in this case a topic. In present case teacher attempt the quiz, but i want that teacher after login can see the topics alotted to them by an admin. Teacher can pick a topic and generate QR which can be accessed by the students through mobile. At present the quiz is like paper where timer is shown and all the questions are displayed at once. I wants that when teacher pick one topic, an option to play the quiz with rapid fire round where each questions appear for say 20 seconds and when all students answer or the time elapsed, question qutomatically moved to the next one with a wait time of 5 seconds, where students can waits for next question to be loaded. At end the teacher can see the leaderboard of the student. In second type which is currently running but a change that it comes when teacher seleect paper style instead of rapid fire. In both the cases QR to be displayed where students can scan it and once all students scanned it , teacher can start the quiz.
+git add .
+git add "filename"
+git commit -m "update'
+git push origin main
+

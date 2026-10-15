@@ -426,12 +426,30 @@ io.on('connection', (socket) => {
     const correctAnswer = currentQ.answer !== undefined ? currentQ.answer : currentQ.correctAnswer;
     const isCorrect = optionIndex === correctAnswer;
 
-    if (isCorrect) {
-      room.players[socket.id].score += 15;
-    }
+	// Calculate elapsed time in seconds from question start
+    const elapsedSeconds = Math.floor((Date.now() - (room.currentQuestionStartTime || Date.now())) / 1000);
 
-	// Send individual feedback AND their updated score back to the participant
-	socket.emit('answer_feedback', { correct: isCorrect, score: room.players[socket.id].score });
+    let earnedPoints = 0;
+    if (isCorrect) {
+      if (elapsedSeconds <= 10) {
+        earnedPoints = 15;
+      } else if (elapsedSeconds <= 15) {
+        earnedPoints = 10;
+      } else {
+        earnedPoints = 5;
+      }
+      room.players[socket.id].score += earnedPoints;
+    } else {
+      earnedPoints = -5;
+      room.players[socket.id].score -= 5; // Negative marking
+    }
+	
+	// Send individual feedback and updated score
+		socket.emit('answer_feedback', { 
+		  correct: isCorrect, 
+		  score: room.players[socket.id].score,
+		  earned: earnedPoints 
+		});
     
     // Send updated scores to the teacher dashboard only (avoiding participant screen disruption)
     io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
@@ -471,6 +489,8 @@ function runRapidFireQuestion(roomId) {
   const q = room.questions[room.currentQuestionIndex];
   room.currentQuestionIndex++;
 
+	room.currentQuestionStartTime = Date.now(); // Record start timestamp
+
   io.to(roomId).emit('next_rapid_question', {
     questionIndex: room.currentQuestionIndex,
     total: room.questions.length,
@@ -478,7 +498,7 @@ function runRapidFireQuestion(roomId) {
     options: q.options
   });
 
-  let timeLeft = 15;
+  let timeLeft = 20;
   if (questionTimer) clearInterval(questionTimer);
 
   questionTimer = setInterval(() => {
