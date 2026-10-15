@@ -10,9 +10,6 @@ const os = require('os');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const XLSX = require('xlsx');
-// Add these variables at the top with your other global variables
-let questionTimer = null;
-let answeredParticipants = new Set(); // Track who answered the current question
 
 
 // Import Mongoose Models
@@ -33,6 +30,7 @@ app.use(express.static(__dirname));
 let questionTimer = null;
 let questions = [];
 const rooms = {};
+let answeredParticipants = new Set(); // Track who answered the current question
 
 // Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI)
