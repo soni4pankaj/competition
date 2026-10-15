@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      socket.on('teacher_leaderboard_update', (leaderboard) => {
+	socket.on('teacher_leaderboard_update', (leaderboard) => {
         window.latestLeaderboard = leaderboard;
         const countEl = document.getElementById('lobby-student-count');
         if (countEl) countEl.textContent = leaderboard.length;
@@ -181,7 +181,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('lobby-student-list');
         if (list) {
           list.innerHTML = '';
-          const sortedPlayers = [...leaderboard].sort((a, b) => b.score - a.score);
+          const sortedPlayers = [...leaderboard].sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return (a.totalTime || 0) - (b.totalTime || 0);
+          });
+          
           sortedPlayers.forEach((p, index) => {
             let rankIcon = `#${index + 1}`;
             if (index === 0) rankIcon = '🥇';
@@ -194,12 +198,17 @@ document.addEventListener('DOMContentLoaded', () => {
                   <span class="font-bold text-sm">${rankIcon}</span>
                   <span class="font-semibold text-white">${p.name}</span>
                 </div>
-                <span class="font-bold text-emerald-400">${p.score} pts</span>
+                <div class="text-right">
+                  <span class="font-bold text-emerald-400">${p.score} pts</span>
+                  <span class="text-[11px] text-slate-400 block">(${p.totalTime || 0}s)</span>
+                </div>
               </li>
             `;
           });
         }
       });
+	  
+	  
 
       socket.on('quiz_ended', () => {
         if (window.latestLeaderboard && window.latestLeaderboard.length > 0) {
@@ -341,11 +350,16 @@ window.deleteQuestion = async function(id) {
   }
 };
 
+
 function showTeacherPodiumModal(leaderboard) {
-  const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
-  const top1 = sorted[0] || { name: 'N/A', score: 0 };
-  const top2 = sorted[1] || { name: 'N/A', score: 0 };
-  const top3 = sorted[2] || { name: 'N/A', score: 0 };
+  const sorted = [...leaderboard].sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return (a.totalTime || 0) - (b.totalTime || 0);
+  });
+  
+  const top1 = sorted[0] || { name: 'N/A', score: 0, totalTime: 0 };
+  const top2 = sorted[1] || { name: 'N/A', score: 0, totalTime: 0 };
+  const top3 = sorted[2] || { name: 'N/A', score: 0, totalTime: 0 };
 
   const existingModal = document.getElementById('podium-celebration-modal');
   if (existingModal) existingModal.remove();
@@ -357,12 +371,12 @@ function showTeacherPodiumModal(leaderboard) {
         <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="flex justify-center mb-2">
-          <img src="../images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
+          <img src="/public/images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
         </div>
 
         <div>
           <h2 class="text-2xl font-bold text-white tracking-tight">🏆 Quiz Winners Podium 🏆</h2>
-          <p class="text-xs text-slate-400 mt-1">Final results and top performances of the session</p>
+          <p class="text-xs text-slate-400 mt-1">Ranked by highest score, with total time as tie-breaker</p>
         </div>
 
         <div class="grid grid-cols-3 gap-3 items-end pt-2">
@@ -372,7 +386,8 @@ function showTeacherPodiumModal(leaderboard) {
             <span class="text-3xl animate-bounce"><img src="../images/rank-2.png" alt="1st Place" class="w-16 h-16 object-contain mb-1 animate-bounce" /></span>
             <div class="text-[11px] font-semibold text-slate-300 truncate w-full" title="${top2.name}">${top2.name}</div>
             <div class="text-xs font-bold text-slate-200">${top2.score} pts</div>
-            <div class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">2nd Place</div>
+            <div class="text-[10px] text-slate-400">(${top2.totalTime || 0}s)</div>
+            <div class="text-[9px] uppercase tracking-wider text-slate-400 font-bold mt-1">2nd Place</div>
           </div>
 
           <!-- 1st Place -->
@@ -380,7 +395,8 @@ function showTeacherPodiumModal(leaderboard) {
             <span class="text-3xl animate-bounce"><img src="../images/rank-1.png" alt="1st Place" class="w-16 h-16 object-contain mb-1 animate-bounce" /></span>
             <div class="text-xs font-bold text-white truncate w-full" title="${top1.name}">${top1.name}</div>
             <div class="text-sm font-extrabold text-amber-300">${top1.score} pts</div>
-            <div class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">1st Place</div>
+            <div class="text-[11px] text-amber-200/80">(${top1.totalTime || 0}s)</div>
+            <div class="text-[10px] uppercase tracking-wider text-amber-400 font-bold mt-1">1st Place</div>
           </div>
 
           <!-- 3rd Place -->
@@ -388,7 +404,8 @@ function showTeacherPodiumModal(leaderboard) {
             <span class="text-3xl animate-bounce"><img src="../images/rank-3.png" alt="1st Place" class="w-16 h-16 object-contain mb-1 animate-bounce" /></span>
             <div class="text-[11px] font-semibold text-slate-300 truncate w-full" title="${top3.name}">${top3.name}</div>
             <div class="text-xs font-bold text-slate-200">${top3.score} pts</div>
-            <div class="text-[9px] uppercase tracking-wider text-amber-600 font-bold">3rd Place</div>
+            <div class="text-[10px] text-slate-400">(${top3.totalTime || 0}s)</div>
+            <div class="text-[9px] uppercase tracking-wider text-amber-600 font-bold mt-1">3rd Place</div>
           </div>
 
         </div>

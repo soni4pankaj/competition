@@ -204,8 +204,14 @@ async function initQuestions() {
 initQuestions();
 
 function getSortedLeaderboard(room) {
-  return Object.values(room.players).sort((a, b) => b.score - a.score);
+  return Object.values(room.players).sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score; // Higher score comes first
+    }
+    return a.totalTime - b.totalTime; // If scores are tied, lower total time comes first
+  });
 }
+
 
 function getLocalIpAddress() {
   const interfaces = os.networkInterfaces();
@@ -338,7 +344,7 @@ io.on('connection', (socket) => {
 
     socket.join(roomId);
     if (!room.players) room.players = {};
-    room.players[socket.id] = { id: socket.id, name, score: 0 };
+    room.players[socket.id] = { id: socket.id, name, score: 0, totalTime: 0 };
 
     socket.emit('joined_successfully', { roomId, name, mode: room.mode });
     io.to(roomId).emit('player_list_update', Object.values(room.players));
@@ -379,7 +385,7 @@ io.on('connection', (socket) => {
 
     socket.join(roomId);
     if (!room.players) room.players = {};
-    room.players[socket.id] = { id: socket.id, name, score: 0 };
+    room.players[socket.id] = { id: socket.id, name, score: 0, totalTime: 0 };
 
     io.to(roomId).emit('lobby_update', {
       players: Object.values(room.players),
@@ -419,11 +425,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
+socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
 
-	// Prevent double-answering the same question round
     if (answeredParticipants.has(socket.id)) return;
     answeredParticipants.add(socket.id);
 
@@ -433,8 +438,10 @@ io.on('connection', (socket) => {
     const correctAnswer = currentQ.answer !== undefined ? currentQ.answer : currentQ.correctAnswer;
     const isCorrect = optionIndex === correctAnswer;
 
-	// Calculate elapsed time in seconds from question start
     const elapsedSeconds = Math.floor((Date.now() - (room.currentQuestionStartTime || Date.now())) / 1000);
+    
+    // Add elapsed time to participant's cumulative total time
+    room.players[socket.id].totalTime = (room.players[socket.id].totalTime || 0) + elapsedSeconds;
 
     let earnedPoints = 0;
     if (isCorrect) {
@@ -448,29 +455,26 @@ io.on('connection', (socket) => {
       room.players[socket.id].score += earnedPoints;
     } else {
       earnedPoints = -5;
-      room.players[socket.id].score -= 5; // Negative marking
+      room.players[socket.id].score -= 5;
     }
-	
-	// Send individual feedback and updated score
-		socket.emit('answer_feedback', { 
-		  correct: isCorrect, 
-		  score: room.players[socket.id].score,
-		  earned: earnedPoints 
-		});
+
+    socket.emit('answer_feedback', { 
+      correct: isCorrect, 
+      score: room.players[socket.id].score,
+      earned: earnedPoints 
+    });
     
-    // Send updated scores to the teacher dashboard only (avoiding participant screen disruption)
     io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
-	// Check if ALL connected players in the room have now answered
+
     const totalPlayers = Object.keys(room.players).length;
     if (totalPlayers > 0 && answeredParticipants.size >= totalPlayers) {
       if (questionTimer) clearInterval(questionTimer);
-      
-      // Wait for the 5-second delay before moving to the next question
       setTimeout(() => {
         runRapidFireQuestion(roomId);
       }, 5000);
     }
   });
+
   
   socket.on('submit_paper_answers', ({ roomId, answers }) => {
     const room = rooms[roomId];
