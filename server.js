@@ -480,7 +480,7 @@ io.on('connection', (socket) => {
     room.questions.forEach((q, index) => {
       const correctAnswer = q.answer !== undefined ? q.answer : q.correctAnswer;
       if (answers[index] === correctAnswer) {
-        score += 10;
+        score += 15;
       }
     });
 

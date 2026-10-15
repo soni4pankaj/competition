@@ -144,6 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lobbyCard) lobbyCard.classList.remove('hidden');
       });
 
+      window.latestLeaderboard = [];
+
       socket.on('lobby_update', ({ players }) => {
         const countEl = document.getElementById('lobby-student-count');
         if (countEl) countEl.textContent = players.length;
@@ -153,13 +155,55 @@ document.addEventListener('DOMContentLoaded', () => {
           list.innerHTML = '';
           const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
           sortedPlayers.forEach((p, index) => {
+            let rankIcon = `#${index + 1}`;
+            if (index === 0) rankIcon = '🥇';
+            if (index === 1) rankIcon = '🥈';
+            if (index === 2) rankIcon = '🥉';
+
             list.innerHTML += `
               <li class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-200">
-                <span class="font-semibold">#${index + 1} ${p.name}</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-sm">${rankIcon}</span>
+                  <span class="font-semibold">#${index + 1} ${p.name}</span>
+                </div>
                 <span class="font-bold text-white">${p.score} pts</span>
               </li>
             `;
           });
+        }
+      });
+
+      socket.on('teacher_leaderboard_update', (leaderboard) => {
+        window.latestLeaderboard = leaderboard;
+        const countEl = document.getElementById('lobby-student-count');
+        if (countEl) countEl.textContent = leaderboard.length;
+        
+        const list = document.getElementById('lobby-student-list');
+        if (list) {
+          list.innerHTML = '';
+          const sortedPlayers = [...leaderboard].sort((a, b) => b.score - a.score);
+          sortedPlayers.forEach((p, index) => {
+            let rankIcon = `#${index + 1}`;
+            if (index === 0) rankIcon = '🥇';
+            if (index === 1) rankIcon = '🥈';
+            if (index === 2) rankIcon = '🥉';
+
+            list.innerHTML += `
+              <li class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-200 mb-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-sm">${rankIcon}</span>
+                  <span class="font-semibold text-white">${p.name}</span>
+                </div>
+                <span class="font-bold text-emerald-400">${p.score} pts</span>
+              </li>
+            `;
+          });
+        }
+      });
+
+      socket.on('quiz_ended', () => {
+        if (window.latestLeaderboard && window.latestLeaderboard.length > 0) {
+          showTeacherPodiumModal(window.latestLeaderboard);
         }
       });
     }
@@ -297,18 +341,65 @@ window.deleteQuestion = async function(id) {
   }
 };
 
-// Add inside teacher.js socket initialization block
-socket.on('teacher_leaderboard_update', (leaderboard) => {
-  const list = document.getElementById('lobby-student-list'); // Or a dedicated teacher leaderboard container
-  if (list) {
-    list.innerHTML = '';
-    leaderboard.forEach((p, index) => {
-      list.innerHTML += `
-        <li class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-200 mb-1">
-          <span class="font-semibold">#${index + 1} ${p.name}</span>
-          <span class="font-bold text-white">${p.score} pts</span>
-        </li>
-      `;
-    });
-  }
-});
+function showTeacherPodiumModal(leaderboard) {
+  const sorted = [...leaderboard].sort((a, b) => b.score - a.score);
+  const top1 = sorted[0] || { name: 'N/A', score: 0 };
+  const top2 = sorted[1] || { name: 'N/A', score: 0 };
+  const top3 = sorted[2] || { name: 'N/A', score: 0 };
+
+  const existingModal = document.getElementById('podium-celebration-modal');
+  if (existingModal) existingModal.remove();
+
+  const modalHtml = `
+    <div id="podium-celebration-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+      <div class="bg-slate-900 border border-purple-500/40 p-8 rounded-3xl w-full max-w-lg shadow-2xl text-center relative overflow-hidden space-y-6">
+        
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="flex justify-center mb-2">
+          <img src="/public/images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
+        </div>
+
+        <div>
+          <h2 class="text-2xl font-bold text-white tracking-tight">🏆 Quiz Winners Podium 🏆</h2>
+          <p class="text-xs text-slate-400 mt-1">Final results and top performances of the session</p>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 items-end pt-2">
+          
+          <!-- 2nd Place -->
+          <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center space-y-1 shadow-md transform -translate-y-2">
+            <span class="text-2xl">🥈</span>
+            <div class="text-[11px] font-semibold text-slate-300 truncate w-full" title="${top2.name}">${top2.name}</div>
+            <div class="text-xs font-bold text-slate-200">${top2.score} pts</div>
+            <div class="text-[9px] uppercase tracking-wider text-slate-400 font-bold">2nd Place</div>
+          </div>
+
+          <!-- 1st Place -->
+          <div class="p-5 rounded-2xl bg-gradient-to-b from-amber-500/20 to-purple-600/20 border border-amber-500/40 flex flex-col items-center justify-center space-y-1.5 shadow-xl transform -translate-y-4">
+            <span class="text-3xl animate-bounce">🥇</span>
+            <div class="text-xs font-bold text-white truncate w-full" title="${top1.name}">${top1.name}</div>
+            <div class="text-sm font-extrabold text-amber-300">${top1.score} pts</div>
+            <div class="text-[10px] uppercase tracking-wider text-amber-400 font-bold">1st Place</div>
+          </div>
+
+          <!-- 3rd Place -->
+          <div class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700 flex flex-col items-center justify-center space-y-1 shadow-md">
+            <span class="text-2xl">🥉</span>
+            <div class="text-[11px] font-semibold text-slate-300 truncate w-full" title="${top3.name}">${top3.name}</div>
+            <div class="text-xs font-bold text-slate-200">${top3.score} pts</div>
+            <div class="text-[9px] uppercase tracking-wider text-amber-600 font-bold">3rd Place</div>
+          </div>
+
+        </div>
+
+        <button onclick="document.getElementById('podium-celebration-modal').remove()" class="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">
+          Close Podium & View Full Leaderboard
+        </button>
+
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
