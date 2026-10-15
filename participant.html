@@ -340,31 +340,37 @@
       });
     });
 
-    socket.on('next_rapid_question', (data) => {
-      if (paperInterval) clearInterval(paperInterval);
-      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+	socket.on('next_rapid_question', (data) => {
+		  if (paperInterval) clearInterval(paperInterval);
+		  if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
 
-      waitingBox.classList.add('hidden');
-      scoreboardBox.classList.add('hidden');
-      questionBox.classList.remove('hidden');
+		  // Dynamically update total questions from database count
+		  const totalCountEl = document.getElementById('total-questions-count');
+		  if (totalCountEl && data.total) {
+			totalCountEl.textContent = data.total;
+		  }
 
-      if (timerContainer) {
-        timerContainer.style.display = 'block';
-      }
+		  waitingBox.classList.add('hidden');
+		  scoreboardBox.classList.add('hidden');
+		  questionBox.classList.remove('hidden');
 
-      answerStatus.textContent = '';
-      questionText.textContent = `Q${data.questionIndex}/${data.total}: ${data.question}`;
-      
-      optionsContainer.innerHTML = '';
-      data.options.forEach((opt, index) => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn';
-        btn.textContent = opt;
-        btn.addEventListener('click', () => submitRapidAnswer(index, btn));
-        optionsContainer.appendChild(btn);
-      });
-    });
+		  if (timerContainer) {
+			timerContainer.style.display = 'block';
+		  }
 
+		  answerStatus.textContent = '';
+		  questionText.textContent = `Q${data.questionIndex}/${data.total}: ${data.question}`;
+		  
+		  optionsContainer.innerHTML = '';
+		  data.options.forEach((opt, index) => {
+			const btn = document.createElement('button');
+			btn.className = 'option-btn';
+			btn.textContent = opt;
+			btn.addEventListener('click', () => submitRapidAnswer(index, btn));
+			optionsContainer.appendChild(btn);
+		  });
+		});
+	
     function submitAnswer(selectedIndex, clickedBtn) {
       selectedBtnRef = clickedBtn;
       const buttons = optionsContainer.querySelectorAll('button');
