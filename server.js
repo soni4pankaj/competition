@@ -10,6 +10,10 @@ const os = require('os');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const XLSX = require('xlsx');
+// Add these variables at the top with your other global variables
+let questionTimer = null;
+let answeredParticipants = new Set(); // Track who answered the current question
+
 
 // Import Mongoose Models
 const User = require('./models/User');
@@ -421,6 +425,10 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
 
+	// Prevent double-answering the same question round
+    if (answeredParticipants.has(socket.id)) return;
+    answeredParticipants.add(socket.id);
+
     const currentQ = room.questions[room.currentQuestionIndex - 1];
     if (!currentQ) return;
 
@@ -454,6 +462,16 @@ io.on('connection', (socket) => {
     
     // Send updated scores to the teacher dashboard only (avoiding participant screen disruption)
     io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
+	// Check if ALL connected players in the room have now answered
+    const totalPlayers = Object.keys(room.players).length;
+    if (totalPlayers > 0 && answeredParticipants.size >= totalPlayers) {
+      if (questionTimer) clearInterval(questionTimer);
+      
+      // Wait for the 5-second delay before moving to the next question
+      setTimeout(() => {
+        runRapidFireQuestion(roomId);
+      }, 5000);
+    }
   });
   
   socket.on('submit_paper_answers', ({ roomId, answers }) => {
@@ -480,6 +498,9 @@ function runRapidFireQuestion(roomId) {
   const room = rooms[roomId];
   if (!room || room.status !== 'active') return;
 
+	// Clear tracking set for the new question round
+  answeredParticipants.clear();
+  
   if (room.currentQuestionIndex >= room.questions.length) {
     io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
     io.to(roomId).emit('quiz_ended');
@@ -492,7 +513,7 @@ function runRapidFireQuestion(roomId) {
 
 	room.currentQuestionStartTime = Date.now(); // Record start timestamp
 
-  io.to(roomId).emit('next_rapid_question', {
+	io.to(roomId).emit('next_rapid_question', {
     questionIndex: room.currentQuestionIndex,
     total: room.questions.length,
     question: q.question || q.questionText,
