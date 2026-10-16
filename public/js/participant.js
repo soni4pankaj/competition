@@ -357,14 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
       bgMusic.pause();
       bgMusic.currentTime = 0;
     }
-    document.querySelector('.container').innerHTML = `
-      <h1 style="color: #007bff; text-align: center;">Knowledge Quiz</h1>
-      <div style="text-align: center; margin-top: 40px; padding: 20px;">
-        <h2 style="color: #007bff; font-size: 24px;">🎉 Quiz Completed! 🎉</h2>
-        <p style="font-size: 18px; color: #555; margin-top: 15px;">Thank you for participating!</p>
-      </div>
-    `;
-  });
 });
 
 // Helper to disable options when time expires
