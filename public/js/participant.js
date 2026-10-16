@@ -365,6 +365,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   socket.on('participant_final_results', (leaderboard) => {
+	console.log("Received final leaderboard:", leaderboard); // Check your browser console (F12) to see if this logs!
+	  
     if (paperInterval) clearInterval(paperInterval);
     if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
 

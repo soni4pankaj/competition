@@ -504,6 +504,7 @@ function runRapidFireQuestion(roomId) {
   answeredParticipants.clear();
   
   if (room.currentQuestionIndex >= room.questions.length) {
+	if (questionTimer) clearInterval(questionTimer);
 	  const finalLeaderboard = getSortedLeaderboard(room);
 //    io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
 	io.to(roomId).emit('teacher_leaderboard_update', finalLeaderboard);
