@@ -366,13 +366,11 @@ function showTeacherPodiumModal(leaderboard) {
 
   const modalHtml = `
     <div id="podium-celebration-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+          <img src="../../images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
       <div class="bg-slate-900 border border-purple-500/40 p-8 rounded-3xl w-full max-w-lg shadow-2xl text-center relative overflow-hidden space-y-6">
         
         <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
-        <div class="flex justify-center mb-2">
-          <img src="../../images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
-        </div>
 
         <div>
           <h2 class="text-2xl font-bold text-white tracking-tight">🏆 Quiz Winners Podium 🏆</h2>
