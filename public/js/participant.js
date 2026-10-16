@@ -63,35 +63,40 @@ document.addEventListener('DOMContentLoaded', () => {
     roomGameMode = modeParam;
   }
 
-  // 1. Join Room / Register Button Action
-  joinBtn.addEventListener('click', () => {
-    const roomId = roomInput.value.trim();
-    const name = nameInput.value.trim();
+	// 1. Join Room / Register Button Action
+	  if (joinBtn) {
+		joinBtn.addEventListener('click', () => {
+		  const roomId = roomInput.value.trim();
+		  const name = nameInput.value.trim();
 
-    if (!roomId) {
-      errorMsg.textContent = 'Invalid room link. Please re-scan the QR code!';
-      return;
-    }
+		  if (!roomId) {
+			errorMsg.textContent = 'Invalid room link. Please re-scan the QR code!';
+			return;
+		  }
 
-    if (!name) {
-      errorMsg.textContent = 'Please enter your name!';
-      return;
-    }
+		  if (!name) {
+			errorMsg.textContent = 'Please enter your name!';
+			return;
+		  }
 
-    if (bgMusic) {
-      bgMusic.volume = 1.0;
-      bgMusic.play().catch(err => console.log('Autoplay prevented:', err));
-    }
+		  if (bgMusic) {
+			bgMusic.volume = 1.0;
+			bgMusic.play().catch(err => console.log('Autoplay prevented:', err));
+		  }
 
-    currentRoomId = roomId;
+		  currentRoomId = roomId;
 
-    socket.emit('join_room', { roomId, name });
-    socket.emit('join_teacher_lobby', { roomId, name });
+		  socket.emit('join_room', { roomId, name });
+		  socket.emit('join_teacher_lobby', { roomId, name });
 
-    playerDisplayName.textContent = name;
-    joinBox.classList.add('hidden');
-    waitingBox.classList.remove('hidden');
-  });
+		  playerDisplayName.textContent = name;
+		  joinBox.classList.add('hidden');
+		  waitingBox.classList.remove('hidden');
+		});
+	  }
+  
+  
+  
 
   // 2. Successful Join Listeners
   socket.on('lobby_update', () => {

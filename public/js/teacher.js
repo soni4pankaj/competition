@@ -371,7 +371,7 @@ function showTeacherPodiumModal(leaderboard) {
         <div class="absolute -top-24 -left-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="flex justify-center mb-2">
-          <img src="/public/images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
+          <img src="../../images/celebration.gif" alt="Celebration" class="w-24 h-24 object-contain rounded-2xl shadow-lg border border-white/10" />
         </div>
 
         <div>
