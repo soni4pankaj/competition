@@ -357,19 +357,9 @@ document.addEventListener('DOMContentLoaded', () => {
       bgMusic.pause();
       bgMusic.currentTime = 0;
     }
-});
+  });
 
-// Helper to disable options when time expires
-  function disableAllOptions() {
-    const buttons = optionsContainer.querySelectorAll('button');
-    buttons.forEach(btn => {
-      btn.disabled = true;
-      btn.style.opacity = '0.6';
-      btn.style.cursor = 'not-allowed';
-    });
-  }
-  
-socket.on('participant_final_results', (leaderboard) => {
+  socket.on('participant_final_results', (leaderboard) => {
     if (paperInterval) clearInterval(paperInterval);
     if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
 
@@ -411,3 +401,15 @@ socket.on('participant_final_results', (leaderboard) => {
       `;
     }).join('');
   });
+
+});
+
+// Helper to disable options when time expires
+function disableAllOptions() {
+  const buttons = optionsContainer.querySelectorAll('button');
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'not-allowed';
+  });
+}
