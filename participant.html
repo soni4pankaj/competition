@@ -3,116 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz Participant</title>
+  <title>Quiz Participant | State Bank Academy</title>
   <style>
+    /* Corporate Login Theme - Pure Inline CSS, No External Dependencies */
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f0f4f8;
       margin: 0;
-      padding: 20px;
-      color: #333;
+      padding: 0;
+      color: #333333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
     }
+
     .container {
-      max-width: 500px;
-      margin: 0 auto;
-      background: #fff;
-      padding: 25px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      padding: 40px 30px;
+      border-radius: 6px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border-top: 4px solid #004c8f;
+      box-sizing: border-box;
+      margin: 20px;
     }
-    h1, h2 {
+
+    h1 {
       text-align: center;
-      color: #007bff;
+      color: #004c8f;
+      font-size: 22px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 25px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
+
+    h2 {
+      text-align: center;
+      color: #2c3e50;
+      font-size: 18px;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+
     input[type="text"] {
       width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      padding: 12px 14px;
+      margin: 8px 0 16px 0;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
       box-sizing: border-box;
-      font-size: 16px;
+      font-size: 14px;
+      background-color: #fafbfc;
+      transition: border-color 0.2s;
     }
+
+    input[type="text"]:focus {
+      border-color: #004c8f;
+      outline: none;
+      background-color: #ffffff;
+    }
+
     button {
       width: 100%;
-      background-color: #007bff;
+      background-color: #004c8f;
       color: white;
       border: none;
       padding: 12px;
-      font-size: 16px;
-      border-radius: 5px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 4px;
       cursor: pointer;
-      margin-top: 10px;
+      margin-top: 5px;
+      transition: background-color 0.2s;
     }
+
     button:hover {
-      background-color: #0056b3;
+      background-color: #003366;
     }
+
     button:disabled {
-      background-color: #6c757d;
+      background-color: #94a3b8;
       cursor: not-allowed;
     }
+
     .option-btn {
-      background-color: #28a745;
-      margin-bottom: 8px;
+      background-color: #ffffff;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+      margin-bottom: 10px;
+      text-align: left;
+      font-weight: 500;
+      padding: 12px 16px;
+      border-radius: 4px;
+      box-shadow: none;
     }
+
     .option-btn:hover {
-      background-color: #218838;
+      background-color: #f8fafc;
+      border-color: #004c8f;
+      color: #004c8f;
     }
+
     .hidden {
-      display: none;
+      display: none !important;
     }
+
     .status-msg {
       text-align: center;
       font-style: italic;
-      color: #666;
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 15px;
     }
+
     ul {
       list-style-type: none;
       padding: 0;
-    }
-    li {
-      background: #e9ecef;
-      margin: 5px 0;
-      padding: 10px;
-      border-radius: 4px;
-    }
-    .my-stats {
-      background: #e7f3ff;
-      border: 1px solid #b6d4fe;
-      padding: 10px;
-      border-radius: 5px;
-      margin-bottom: 15px;
+      margin: 0;
     }
 
-    /* Rules Container Styling */
+    li {
+      background: #f8fafc;
+      margin: 6px 0;
+      padding: 10px 14px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      font-size: 14px;
+    }
+
+    .my-stats {
+      background: #f0f7ff;
+      border: 1px solid #bae6fd;
+      padding: 12px 16px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      color: #0369a1;
+      font-size: 14px;
+    }
+
+    .my-stats p {
+      margin: 4px 0;
+    }
+
+    /* Rules Container Styling - Corporate Notice Box */
     .rules-card {
-      background-color: #fff3cd;
-      border: 1px solid #ffeeba;
-      color: #856404;
-      padding: 15px 20px;
-      border-radius: 6px;
-      margin-top: 20px;
+      background-color: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      padding: 16px;
+      border-radius: 4px;
+      margin-top: 25px;
     }
 
     .rules-card h3 {
       margin-top: 0;
-      margin-bottom: 10px;
-      color: #856404;
-      font-size: 16px;
+      margin-bottom: 8px;
+      color: #92400e;
+      font-size: 14px;
       text-align: left;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
     .rules-card ol {
       margin: 0;
-      padding-left: 20px;
+      padding-left: 18px;
     }
 
     .rules-card li {
       background: transparent !important;
-      padding: 4px 0 !important;
+      border: none !important;
+      padding: 2px 0 !important;
       margin: 2px 0 !important;
-      font-size: 14px;
-      line-height: 1.4;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #92400e;
+    }
+
+    /* Professional Badge Boxes */
+    .badge-box {
+      background: #f0f7ff;
+      border: 1px solid #bae6fd;
+      padding: 10px;
+      border-radius: 4px;
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: 600;
+      color: #0369a1;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -122,25 +205,25 @@
     <h1>State Bank Academy</h1>
 
     <!-- Floating Paper Mode Timer Badge -->
-    <div id="paper-timer-container" class="hidden" style="background: #e7f3ff; border: 1px solid #b6d4fe; padding: 10px; border-radius: 5px; text-align: center; margin-bottom: 15px; font-weight: bold; color: #004085;">
+    <div id="paper-timer-container" class="hidden badge-box" style="background: #fef2f2; border-color: #fecaca; color: #991b1b;">
       ⏳ Paper Exam Time Remaining: <span id="paper-timer-display">02:00</span>
     </div>
 
     <!-- 1. Join Room Form -->
     <div id="join-box">
-      <h2>Join Quiz</h2>
+      <h2>Participant Portal Login</h2>
       <!-- Room input is hidden from participants as requested -->
       <input type="text" id="room-input" placeholder="Enter Room ID" class="hidden" />
-      <input type="text" id="name-input" placeholder="Enter Your Name" autofocus />
-      <button id="join-btn">Register</button>
-      <p id="error-msg" style="color: red; text-align: center;"></p>
+      <input type="text" id="name-input" placeholder="Enter Your Full Name" autofocus />
+      <button id="join-btn">Proceed to Session</button>
+      <p id="error-msg" style="color: #dc2626; text-align: center; font-size: 12px; margin-top: 8px;"></p>
 
       <!-- Quiz Rules Box -->
       <div class="rules-card">
-        <h3>📋 Quiz Instructions & Rules</h3>
+        <h3>📋 Instructions & Guidelines</h3>
         <ol>
-          <li>Connect to the Wifi</li>
-          <li>Enter your full name</li>
+          <li>Connect to the official secure network</li>
+          <li>Enter your verified full name accurately</li>
           <li>Time allotted to answer the question is max 20 seconds</li>
           <li>Full score i.e. 15 marks awarded if correct answer in 10 seconds</li>
           <li>Score 10 is awarded if correct answer in 11-15 seconds</li>
@@ -153,44 +236,46 @@
 
     <!-- 2. Waiting Screen -->
     <div id="waiting-box" class="hidden">
-      <h2>Welcome, <span id="player-display-name"></span>!</h2>
-      <p class="status-msg">Waiting for the master to start the question...</p>
+      <h2>Welcome, <span id="player-display-name"></span></h2>
+      <p class="status-msg">Session initialized. Waiting for the administrator to commence...</p>
     </div>
 
-	<!-- 3. Active Question View -->
-		<div id="question-box" class="hidden">
-		  <!-- Add live score display here -->
-		  <div style="background: #e7f3ff; border: 1px solid #b6d4fe; padding: 8px; border-radius: 5px; text-align: center; margin-bottom: 10px; font-weight: bold; color: #004085;">
-			Your Current Score: <span id="live-my-score">0</span> pts
-		  </div>
+    <!-- 3. Active Question View -->
+    <div id="question-box" class="hidden">
+      <div class="badge-box">
+        Current Score: <span id="live-my-score">0</span> pts
+      </div>
 
-		  <h3 id="question-text">Loading question...</h3>
-		  <p id="timer-container" style="text-align: right;"><strong>Time Left:</strong> <span id="timer-display">15</span>s</p>
-		  <div id="options-container"></div>
-		  <p id="answer-status" class="status-msg"></p>
-		</div>
+      <h3 id="question-text" style="font-size: 15px; font-weight: 600; line-height: 1.4; color: #1e293b; margin-top: 0;">Loading question...</h3>
+      <div id="timer-container" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b; margin-bottom: 15px;">
+        <span>Assessment Round</span>
+        <span><strong>Time Left:</strong> <span id="timer-display" style="color: #dc2626; font-weight: 700;">15</span>s</span>
+      </div>
+      <div id="options-container"></div>
+      <p id="answer-status" class="status-msg"></p>
+    </div>
 	
     <!-- 4. Scoreboard / Leaderboard View -->
     <div id="scoreboard-box" class="hidden">
-      <h2 id="scoreboard-title">Leaderboard</h2>
+      <h2 id="scoreboard-title">Performance Leaderboard</h2>
       
       <div class="my-stats">
         <p><strong>Your Score:</strong> <span id="my-score">0</span> pts</p>
-        <p><strong>Round Time:</strong> <span id="my-round-time">N/A</span>s</p>
+        <p><strong>-------------</strong></p>
         <p><strong>Total Time:</strong> <span id="my-total-time">0</span>s</p>
       </div>
 
       <ul id="score-list"></ul>
 
       <div id="manual-wait-notice" class="hidden" style="text-align: center; margin-top: 15px;">
-        <p class="status-msg">⏳ Wait for the host to load the next question...</p>
+        <p class="status-msg">⏳ Please wait for the host to dispatch the next question...</p>
       </div>
     </div>
     
     <!-- Final Game Over Container -->
-    <div id="game-over-box" class="hidden" style="text-align: center;">
-      <h2>🎉 Quiz Completed! 🎉</h2>
-      <p>Thank you for participating!</p>
+    <div id="game-over-box" class="hidden" style="text-align: center; padding: 15px 0;">
+      <h2>Assessment Completed</h2>
+      <p style="color: #64748b; font-size: 14px;">Thank you for your participation.</p>
       <div id="final-score-display"></div>
     </div>
 
@@ -238,45 +323,36 @@
     let roomGameMode = 'manual';
     let paperInterval = null;
 
-    // Helper: Play SFX and duck background music volume
     function playSoundEffect(audioElement) {
       if (!audioElement) return;
-
-      if (bgMusic && !bgMusic.paused) {
-        bgMusic.volume = 0.2;
-      }
-
+      if (bgMusic && !bgMusic.paused) { bgMusic.volume = 0.2; }
       audioElement.currentTime = 0;
       audioElement.play().catch(err => console.log('SFX Play error:', err));
-
-      audioElement.onended = () => {
-        if (bgMusic) bgMusic.volume = 1.0;
-      };
+      audioElement.onended = () => { if (bgMusic) bgMusic.volume = 1.0; };
     }
 
-    // Automatically grab Room ID and Mode from URL query parameters (QR code)
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
     const modeParam = urlParams.get('mode');
-    if (roomParam) {
-      roomInput.value = roomParam;
-    }
-    if (modeParam) {
-      roomGameMode = modeParam;
+    const totalParam = urlParams.get('total');
+    
+    if (roomParam) { roomInput.value = roomParam; }
+    if (modeParam) { roomGameMode = modeParam; }
+    if (totalParam) {
+      const totalCountEl = document.getElementById('total-questions-count');
+      if (totalCountEl) { totalCountEl.textContent = totalParam; }
     }
 
-    // 1. Join Room / Register Button Action
     joinBtn.addEventListener('click', () => {
       const roomId = roomInput.value.trim();
       const name = nameInput.value.trim();
 
       if (!roomId) {
-        errorMsg.textContent = 'Invalid room link. Please re-scan the QR code!';
+        errorMsg.textContent = 'Invalid session link. Please re-scan the QR code.';
         return;
       }
-
       if (!name) {
-        errorMsg.textContent = 'Please enter your name!';
+        errorMsg.textContent = 'Please enter your full name.';
         return;
       }
 
@@ -286,7 +362,6 @@
       }
 
       currentRoomId = roomId;
-
       socket.emit('join_room', { roomId, name });
       socket.emit('join_teacher_lobby', { roomId, name });
 
@@ -295,26 +370,23 @@
       waitingBox.classList.remove('hidden');
     });
 
-    // 2. Successful Join Listeners
-    socket.on('lobby_update', () => {
-      waitingBox.classList.remove('hidden');
+    socket.on('lobby_update', (data) => { 
+      waitingBox.classList.remove('hidden'); 
+      if (data && data.totalQuestions) {
+        const totalCountEl = document.getElementById('total-questions-count');
+        if (totalCountEl) { totalCountEl.textContent = data.totalQuestions; }
+      }
     });
 
     socket.on('joined_successfully', ({ roomId, name, mode }) => {
       playerDisplayName.textContent = name;
       joinBox.classList.add('hidden');
       waitingBox.classList.remove('hidden');
-
-      if (mode) {
-        roomGameMode = mode;
-      }
+      if (mode) { roomGameMode = mode; }
     });
 
-    socket.on('error_msg', (msg) => {
-      errorMsg.textContent = msg;
-    });
+    socket.on('error_msg', (msg) => { errorMsg.textContent = msg; });
 
-    // 3. Question Display Listeners
     socket.on('display_question', (data) => {
       if (paperInterval) clearInterval(paperInterval);
       if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
@@ -323,9 +395,7 @@
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
 
-      if (timerContainer) {
-        timerContainer.style.display = 'block';
-      }
+      if (timerContainer) { timerContainer.style.display = 'flex'; }
 
       answerStatus.textContent = '';
       questionText.textContent = `Q${data.questionNumber}: ${data.question}`;
@@ -340,73 +410,60 @@
       });
     });
 
-	socket.on('next_rapid_question', (data) => {
-		  if (paperInterval) clearInterval(paperInterval);
-		  if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+    socket.on('next_rapid_question', (data) => {
+      if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
 
-		  // Dynamically update total questions from database count
-		  const totalCountEl = document.getElementById('total-questions-count');
-		  if (totalCountEl && data.total) {
-			totalCountEl.textContent = data.total;
-		  }
+      const totalCountEl = document.getElementById('total-questions-count');
+      if (totalCountEl && data.total) { totalCountEl.textContent = data.total; }
 
-		  waitingBox.classList.add('hidden');
-		  scoreboardBox.classList.add('hidden');
-		  questionBox.classList.remove('hidden');
+      waitingBox.classList.add('hidden');
+      scoreboardBox.classList.add('hidden');
+      questionBox.classList.remove('hidden');
 
-		  if (timerContainer) {
-			timerContainer.style.display = 'block';
-		  }
+      if (timerContainer) { timerContainer.style.display = 'flex'; }
 
-		  answerStatus.textContent = '';
-		  questionText.textContent = `Q${data.questionIndex}/${data.total}: ${data.question}`;
-		  
-		  optionsContainer.innerHTML = '';
-		  data.options.forEach((opt, index) => {
-			const btn = document.createElement('button');
-			btn.className = 'option-btn';
-			btn.textContent = opt;
-			btn.addEventListener('click', () => submitRapidAnswer(index, btn));
-			optionsContainer.appendChild(btn);
-		  });
-		});
+      answerStatus.textContent = '';
+      questionText.textContent = `Q${data.questionIndex}/${data.total}: ${data.question}`;
+      
+      optionsContainer.innerHTML = '';
+      data.options.forEach((opt, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => submitRapidAnswer(index, btn));
+        optionsContainer.appendChild(btn);
+      });
+    });
 	
     function submitAnswer(selectedIndex, clickedBtn) {
       selectedBtnRef = clickedBtn;
       const buttons = optionsContainer.querySelectorAll('button');
       buttons.forEach(btn => btn.disabled = true);
-      clickedBtn.style.backgroundColor = '#ffc107';
-      clickedBtn.style.color = '#000';
+      clickedBtn.style.backgroundColor = '#fef3c7';
+      clickedBtn.style.color = '#78350f';
+      clickedBtn.style.borderColor = '#f59e0b';
 
-      socket.emit('submit_answer', {
-        roomId: currentRoomId,
-        selectedOption: selectedIndex
-      });
+      socket.emit('submit_answer', { roomId: currentRoomId, selectedOption: selectedIndex });
     }
 
     function submitRapidAnswer(selectedIndex, clickedBtn) {
       selectedBtnRef = clickedBtn;
       const buttons = optionsContainer.querySelectorAll('button');
       buttons.forEach(btn => btn.disabled = true);
-      clickedBtn.style.backgroundColor = '#ffc107';
-      clickedBtn.style.color = '#000';
+      clickedBtn.style.backgroundColor = '#fef3c7';
+      clickedBtn.style.color = '#78350f';
+      clickedBtn.style.borderColor = '#f59e0b';
 
-      socket.emit('submit_rapid_answer', {
-        roomId: currentRoomId,
-        optionIndex: selectedIndex
-      });
+      socket.emit('submit_rapid_answer', { roomId: currentRoomId, optionIndex: selectedIndex });
     }
 
-    // Paper Style Mode Listener with Active Countdown Timer
     socket.on('display_paper_quiz', ({ questions }) => {
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
 
-      if (timerContainer) {
-        timerContainer.style.display = 'none'; // Hide rapid timer
-      }
-
+      if (timerContainer) { timerContainer.style.display = 'none'; }
       if (paperTimerContainer) {
         paperTimerContainer.classList.remove('hidden');
         paperTimerContainer.style.display = 'block';
@@ -421,7 +478,6 @@
         if (paperTimerDisplay) {
           paperTimerDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
-
         if (paperTimeLeft <= 0) {
           clearInterval(paperInterval);
           alert('Time is up! Automatically submitting your paper.');
@@ -430,25 +486,25 @@
         paperTimeLeft--;
       }, 1000);
 
-      questionText.innerHTML = `<h3 style="color: #007bff; text-align: center; margin-bottom: 5px;">📝 Paper Style Exam</h3>`;
+      questionText.innerHTML = `<h3 style="color: #004c8f; text-align: center; margin-bottom: 5px;">📝 Paper Style Exam</h3>`;
       
       let htmlContent = '';
       questions.forEach((q, qIndex) => {
         let optionsHtml = q.options.map((opt, optIdx) => `
-          <label style="display: block; margin: 8px 0; cursor: pointer; padding: 8px; background: #fff; border-radius: 4px; border: 1px solid #ccc;">
+          <label style="display: block; margin: 6px 0; cursor: pointer; padding: 8px 12px; background: #ffffff; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 13px;">
             <input type="radio" name="paper-q-${qIndex}" value="${optIdx}" style="margin-right: 8px;"> ${opt}
           </label>
         `).join('');
 
         htmlContent += `
-          <div style="background: #f9f9f9; padding: 15px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ddd;">
-            <p><strong>Q${qIndex + 1}: ${q.question}</strong></p>
+          <div style="background: #f8fafc; padding: 14px; margin-bottom: 14px; border-radius: 4px; border: 1px solid #e2e8f0;">
+            <p style="margin-top: 0; font-weight: 600; font-size: 13px;">Q${qIndex + 1}: ${q.question}</p>
             ${optionsHtml}
           </div>
         `;
       });
 
-      htmlContent += `<button type="button" onclick="submitPaperAnswers()" style="background: #28a745; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px;">Submit Paper</button>`;
+      htmlContent += `<button type="button" onclick="submitPaperAnswers()" style="background-color: #16a34a; margin-top: 10px;">Submit Paper</button>`;
       optionsContainer.innerHTML = htmlContent;
 
       window.submitPaperAnswers = function() {
@@ -490,62 +546,58 @@
       if (myScoreEl) myScoreEl.textContent = score;
 
       answerStatus.textContent = `Quiz Completed! You scored ${score} out of ${total * 10} points.`;
-      
       const scoreboardTitle = document.getElementById('scoreboard-title');
-      if (scoreboardTitle) scoreboardTitle.textContent = "🎉 Paper Exam Finished! 🎉";
+      if (scoreboardTitle) scoreboardTitle.textContent = "Exam Completed Successfully";
     });
 
-    // 4. Answer Confirmation & Audio SFX Feedbacks
     socket.on('answer_confirmed', ({ isCorrect } = {}) => {
       if (isCorrect === true) {
-        answerStatus.textContent = 'Correct Answer! 🎉';
+        answerStatus.textContent = 'Correct Answer';
         playSoundEffect(correctSfx);
         if (selectedBtnRef) {
-          selectedBtnRef.style.backgroundColor = '#28a745';
+          selectedBtnRef.style.backgroundColor = '#16a34a';
           selectedBtnRef.style.color = '#fff';
+          selectedBtnRef.style.borderColor = '#16a34a';
         }
       } else if (isCorrect === false) {
-        answerStatus.textContent = 'Incorrect Answer! ❌';
+        answerStatus.textContent = 'Incorrect Answer';
         playSoundEffect(wrongSfx);
         if (selectedBtnRef) {
-          selectedBtnRef.style.backgroundColor = '#dc3545';
+          selectedBtnRef.style.backgroundColor = '#dc2626';
           selectedBtnRef.style.color = '#fff';
+          selectedBtnRef.style.borderColor = '#dc2626';
         }
       }
     });
 
-	socket.on('answer_feedback', ({ correct, score, earned }) => {
-		if (correct) {
-		  answerStatus.textContent = `Correct Answer! 🎉 (+${earned} pts)`;
-		  playSoundEffect(correctSfx);
-		  if (selectedBtnRef) {
-			selectedBtnRef.style.backgroundColor = '#28a745';
-			selectedBtnRef.style.color = '#fff';
-		  }
-		} else {
-		  answerStatus.textContent = `Incorrect Answer! ❌ (${earned} pts)`;
-		  playSoundEffect(wrongSfx);
-		  if (selectedBtnRef) {
-			selectedBtnRef.style.backgroundColor = '#dc3545';
-			selectedBtnRef.style.color = '#fff';
-		  }
-		}
+    socket.on('answer_feedback', ({ correct, score, earned }) => {
+      if (correct) {
+        answerStatus.textContent = `Correct Answer (+${earned} pts)`;
+        playSoundEffect(correctSfx);
+        if (selectedBtnRef) {
+          selectedBtnRef.style.backgroundColor = '#16a34a';
+          selectedBtnRef.style.color = '#fff';
+          selectedBtnRef.style.borderColor = '#16a34a';
+        }
+      } else {
+        answerStatus.textContent = `Incorrect Answer (${earned} pts)`;
+        playSoundEffect(wrongSfx);
+        if (selectedBtnRef) {
+          selectedBtnRef.style.backgroundColor = '#dc2626';
+          selectedBtnRef.style.color = '#fff';
+          selectedBtnRef.style.borderColor = '#dc2626';
+        }
+      }
 
-		const liveScoreEl = document.getElementById('live-my-score');
-		if (liveScoreEl && score !== undefined) {
-		  liveScoreEl.textContent = score;
-		}
+      const liveScoreEl = document.getElementById('live-my-score');
+      if (liveScoreEl && score !== undefined) { liveScoreEl.textContent = score; }
 
-		const myScoreEl = document.getElementById('my-score');
-		if (myScoreEl && score !== undefined) {
-		  myScoreEl.textContent = score;
-		}
-	  });  
+      const myScoreEl = document.getElementById('my-score');
+      if (myScoreEl && score !== undefined) { myScoreEl.textContent = score; }
+    });  
 
     socket.on('timer_tick', (timeLeft) => {
-      if (!paperInterval) {
-        timerDisplay.textContent = timeLeft;
-      }
+      if (!paperInterval) { timerDisplay.textContent = timeLeft; }
     });
 
     socket.on('leaderboard_data', (leaderboard) => {
@@ -570,9 +622,55 @@
       scoreList.innerHTML = leaderboard.map((p, index) => {
         const isMe = p.id === socket.id;
         return `
-          <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; margin: 6px 0; border-radius: 6px; ${isMe ? 'font-weight: bold; background: #d1ecf1; border: 1px solid #bee5eb;' : 'background: #e9ecef;'}">
+          <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; margin: 4px 0; border-radius: 4px; ${isMe ? 'font-weight: 600; background: #e0f2fe; border: 1px solid #7dd3fc;' : 'background: #f8fafc;'}">
             <span><strong>#${index + 1}</strong> ${p.name} ${isMe ? '(You)' : ''}</span>
             <span><strong>${p.score}</strong> pts</span>
+          </li>
+        `;
+      }).join('');
+    });
+
+    // End-of-quiz listener showing participant rank, score, total time, and top 1, 2, 3 podium
+    socket.on('participant_final_results', (leaderboard) => {
+      if (paperInterval) clearInterval(paperInterval);
+      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+
+      questionBox.classList.add('hidden');
+      waitingBox.classList.add('hidden');
+      scoreboardBox.classList.remove('hidden');
+
+      const manualNotice = document.getElementById('manual-wait-notice');
+      if (manualNotice) manualNotice.classList.add('hidden');
+
+      const myIndex = leaderboard.findIndex(p => p.id === socket.id);
+      const me = leaderboard[myIndex] || { score: 0, totalTime: 0 };
+
+      const myScoreEl = document.getElementById('my-score');
+      if (myScoreEl) myScoreEl.textContent = me.score;
+      
+      const myTotalTimeEl = document.getElementById('my-total-time');
+      if (myTotalTimeEl) myTotalTimeEl.textContent = me.totalTime || 0;
+
+      const scoreboardTitle = document.getElementById('scoreboard-title');
+      if (scoreboardTitle) scoreboardTitle.textContent = `🎉 Assessment Finished: Rank #${myIndex + 1} 🎉`;
+
+      scoreList.innerHTML = leaderboard.map((p, index) => {
+        const isMe = p.id === socket.id;
+        let rankBadge = `#${index + 1}`;
+        if (index === 0) rankBadge = '🥇 1st';
+        if (index === 1) rankBadge = '🥈 2nd';
+        if (index === 2) rankBadge = '🥉 3rd';
+
+        return `
+          <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; margin: 4px 0; border-radius: 4px; ${isMe ? 'font-weight: 700; background: #e0f2fe; border: 1px solid #38bdf8;' : 'background: #f8fafc;'}">
+            <div>
+              <span style="display: inline-block; width: 55px; font-weight: bold; color: ${index < 3 ? '#b45309' : '#334155'};">${rankBadge}</span>
+              <span>${p.name} ${isMe ? '(You)' : ''}</span>
+            </div>
+            <div style="text-align: right;">
+              <strong style="color: #004c8f;">${p.score}</strong> pts 
+              <span style="font-size: 11px; color: #64748b; display: block;">(${p.totalTime || 0}s)</span>
+            </div>
           </li>
         `;
       }).join('');
@@ -586,15 +684,7 @@
         bgMusic.pause();
         bgMusic.currentTime = 0;
       }
-      document.querySelector('.container').innerHTML = `
-        <h1 style="color: #007bff; text-align: center;">Knowledge Quiz</h1>
-        <div style="text-align: center; margin-top: 40px; padding: 20px;">
-          <h2 style="color: #007bff; font-size: 24px;">🎉 Quiz Completed! 🎉</h2>
-          <p style="font-size: 18px; color: #555; margin-top: 15px;">Thank you for participating!</p>
-        </div>
-      `;
     });
   </script>
-
 </body>
 </html>

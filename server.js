@@ -361,7 +361,7 @@ io.on('connection', (socket) => {
 
     const reqHost = socket.handshake.headers.host;
     let baseUrl = process.env.PUBLIC_URL || `http://${getLocalIpAddress()}:${PORT}`;
-    const joinUrl = `${baseUrl}/participant.html?room=${roomId}&category=${category}&mode=${mode}`;
+    const joinUrl = `${baseUrl}/participant.html?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
     const qrImage = await QRCode.toDataURL(joinUrl);
 
     const existingPlayers = rooms[roomId] ? rooms[roomId].players : {};
