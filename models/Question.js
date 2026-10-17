@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const questionSchema = new mongoose.Schema({
   id: { type: Number, required: true },
+  chapter: { type: String, required: true },
   question: { type: String, required: true },
   options: [{ type: String, required: true }],
   answer: { type: Number, required: true },

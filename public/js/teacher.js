@@ -27,9 +27,13 @@ window.initTeacherDashboard = function(user) {
     const newBtn = createRoomBtn.cloneNode(true);
     createRoomBtn.parentNode.replaceChild(newBtn, createRoomBtn);
 
-    newBtn.addEventListener('click', () => {
+	newBtn.addEventListener('click', () => {
       const selectedTopic = topicSelect ? topicSelect.value : 'default';
       const selectedMode = document.getElementById('teacher-mode-select').value;
+      
+      // 1. Grab the chapter text from the input field
+      const chapterText = document.getElementById('teacher-chapter-text') ? document.getElementById('teacher-chapter-text').value : '';
+      
       window.currentRoomId = 'room_' + Math.random().toString(36).substring(2, 8);
 
       document.getElementById('teacher-lobby-card').classList.remove('hidden');
@@ -43,12 +47,16 @@ window.initTeacherDashboard = function(user) {
         window.socket = io();
       }
 
+      // 2. Include chapterText in the socket emission
       socket.emit('create_teacher_room', { 
         roomId: window.currentRoomId, 
         category: selectedTopic, 
-        mode: selectedMode 
+        mode: selectedMode,
+        chapterText: chapterText 
       });
     });
+
+
   }
 };
 

@@ -351,7 +351,7 @@ io.on('connection', (socket) => {
   });
 
   // --- TEACHER & RAPID-FIRE / PAPER MODE SOCKET HANDLERS ---
-  socket.on('create_teacher_room', async ({ roomId, category, mode }) => {
+	socket.on('create_teacher_room', async ({ roomId, category, mode, chapterText }) => {
     socket.join(roomId);
 
     let fetchedQuestions = await Question.find({ category });
@@ -370,6 +370,7 @@ io.on('connection', (socket) => {
       category,
       mode, 
       questions: fetchedQuestions,
+      chapterText: chapterText || "Please read the assigned material carefully before the assessment begins.",
       currentQuestionIndex: 0,
       players: existingPlayers, 
       answers: {},
@@ -394,7 +395,7 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('start_teacher_quiz', async (roomId) => {
+	socket.on('start_teacher_quiz', async (roomId) => {
     let room = rooms[roomId];
     if (!room) return;
 
@@ -405,13 +406,34 @@ io.on('connection', (socket) => {
       }
     }
 
+    // Check if it's a chapter-based mode needing the 5-minute reading timer (300 seconds)
+    if (room.mode === 'chapter_rapid' || room.mode === 'chapter_paper') {
+      room.status = 'reading';
+      io.to(roomId).emit('start_reading_phase', {
+        chapterText: room.chapterText,
+        readingTime: 300 // 300 seconds = 5 minutes
+      });
+
+      // Automatically trigger actual quiz after 5 minutes (300,000 milliseconds)
+      setTimeout(() => {
+        beginActualQuiz(roomId);
+      }, 300000);
+    } else {
+      beginActualQuiz(roomId);
+    }
+  });
+
+  function beginActualQuiz(roomId) {
+    let room = rooms[roomId];
+    if (!room || room.status === 'active') return;
+
     room.status = 'active';
     io.to(roomId).emit('quiz_started', { mode: room.mode, questions: room.questions });
 
-    if (room.mode === 'rapid') {
+    if (room.mode === 'rapid' || room.mode === 'chapter_rapid') {
       room.currentQuestionIndex = 0;
       runRapidFireQuestion(roomId);
-    } else if (room.mode === 'paper') {
+    } else if (room.mode === 'paper' || room.mode === 'chapter_paper') {
       const formattedQuestions = room.questions.map(q => ({
         question: q.question || q.questionText,
         options: q.options,
@@ -420,11 +442,10 @@ io.on('connection', (socket) => {
 
       io.to(roomId).emit('display_paper_quiz', {
         questions: formattedQuestions,
-		totalQuestions: room.questions.length
+        totalQuestions: room.questions.length
       });
     }
-  });
-
+  }
 socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;

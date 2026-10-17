@@ -240,6 +240,18 @@
       <p class="status-msg">Session initialized. Waiting for the administrator to commence...</p>
     </div>
 
+    <!-- Reading Phase Screen (5-Min Chapter Review) -->
+    <div id="reading-box" class="hidden" style="text-align: center;">
+      <h2>📖 Assigned Chapter Reading</h2>
+      <div id="reading-timer-banner" style="background: #fef3c7; border: 1px solid #fde68a; color: #78350f; padding: 10px; border-radius: 4px; font-weight: bold; margin-bottom: 15px; font-size: 14px;">
+        ⏱️ Time Remaining to Read: <span id="reading-countdown">05:00</span>
+      </div>
+      <div id="chapter-content-box" style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 16px; border-radius: 4px; max-height: 260px; overflow-y: auto; font-size: 13px; line-height: 1.6; margin-bottom: 15px; text-align: left; color: #1e293b;">
+        Loading chapter material...
+      </div>
+      <p class="status-msg">The quiz will automatically commence once the reading timer expires.</p>
+    </div>
+
     <!-- 3. Active Question View -->
     <div id="question-box" class="hidden">
       <div class="badge-box">
@@ -322,6 +334,7 @@
     let selectedBtnRef = null;
     let roomGameMode = 'manual';
     let paperInterval = null;
+    let readingInterval = null;
 
     function playSoundEffect(audioElement) {
       if (!audioElement) return;
@@ -387,7 +400,48 @@
 
     socket.on('error_msg', (msg) => { errorMsg.textContent = msg; });
 
+    // Chapter Reading Phase Listener
+    socket.on('start_reading_phase', ({ chapterText, readingTime }) => {
+      document.getElementById('join-box').classList.add('hidden');
+      document.getElementById('waiting-box').classList.add('hidden');
+      document.getElementById('question-box').classList.add('hidden');
+      document.getElementById('scoreboard-box').classList.add('hidden');
+      
+      const readingBox = document.getElementById('reading-box');
+      if (readingBox) readingBox.classList.remove('hidden');
+
+      const contentBox = document.getElementById('chapter-content-box');
+      if (contentBox) contentBox.innerHTML = chapterText;
+
+      let timeLeft = readingTime; // 300 seconds (5 mins)
+      const countdownEl = document.getElementById('reading-countdown');
+
+      if (readingInterval) clearInterval(readingInterval);
+      readingInterval = setInterval(() => {
+        let mins = Math.floor(timeLeft / 60);
+        let secs = timeLeft % 60;
+        if (countdownEl) {
+          countdownEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        if (timeLeft <= 0) {
+          clearInterval(readingInterval);
+        }
+        timeLeft--;
+      }, 1000);
+    });
+
+    socket.on('quiz_started', () => {
+      if (readingInterval) clearInterval(readingInterval);
+      const readingBox = document.getElementById('reading-box');
+      if (readingBox) readingBox.classList.add('hidden');
+    });
+
     socket.on('display_question', (data) => {
+      if (readingInterval) clearInterval(readingInterval);
+      const readingBox = document.getElementById('reading-box');
+      if (readingBox) readingBox.classList.add('hidden');
+
       if (paperInterval) clearInterval(paperInterval);
       if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
       
@@ -411,6 +465,10 @@
     });
 
     socket.on('next_rapid_question', (data) => {
+      if (readingInterval) clearInterval(readingInterval);
+      const readingBox = document.getElementById('reading-box');
+      if (readingBox) readingBox.classList.add('hidden');
+
       if (paperInterval) clearInterval(paperInterval);
       if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
 
@@ -459,6 +517,10 @@
     }
 
     socket.on('display_paper_quiz', ({ questions }) => {
+      if (readingInterval) clearInterval(readingInterval);
+      const readingBox = document.getElementById('reading-box');
+      if (readingBox) readingBox.classList.add('hidden');
+
       waitingBox.classList.add('hidden');
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
