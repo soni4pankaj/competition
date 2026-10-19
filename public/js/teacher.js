@@ -53,9 +53,6 @@ window.initTeacherDashboard = function(user) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Load Chapters on startup
-  loadChapters();
-
   // Question Manager Controls Binding
   const showQuestionsBtn = document.getElementById('teacher-show-questions-btn');
   if (showQuestionsBtn) {
@@ -210,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
       });
-	  
+
       socket.on('quiz_ended', () => {
         if (window.latestLeaderboard && window.latestLeaderboard.length > 0) {
           showTeacherPodiumModal(window.latestLeaderboard);
@@ -240,8 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
     questionForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('edit-question-id').value;
-      const topic = document.getElementById('modal-question-topic').value;
-      const chapterId = document.getElementById('modal-question-chapter').value || null;
+      const topicSelect = document.getElementById('modal-question-topic');
+      const topic = topicSelect ? topicSelect.value : (document.getElementById('teacher-manage-topic-select')?.value || 'default');
+      const chapterSelect = document.getElementById('modal-question-chapter');
+      const chapterId = chapterSelect ? (chapterSelect.value || null) : null;
+      
       const questionText = document.getElementById('modal-question-text').value;
       const options = [
         document.getElementById('modal-option-0').value,
@@ -327,7 +327,7 @@ async function openQuestionModal(question = null) {
     topicSelect.innerHTML = topics.map(t => `<option value="${t}" ${t === (question?.category || currentManageTopic) ? 'selected' : ''}>${t}</option>`).join('');
   }
 
-  // Populate chapter dropdown for the selected topic
+  // Populate chapter dropdown for selected topic
   await updateChapterDropdownForModal(topicSelect?.value, question?.chapterId);
 
   // When teacher changes the topic in modal, update chapter choices dynamically
@@ -355,7 +355,7 @@ async function updateChapterDropdownForModal(topic, selectedChapterId = '') {
     const chapters = data.success ? data.chapters.filter(c => c.topic === topic) : [];
 
     chapterSelect.innerHTML = `<option value="">-- General Topic Question --</option>` + 
-      chapters.map(c => `<option value="${c.chapterId}" ${c.chapterId === selectedChapterId ? 'selected' : ''}>${c.chapterId}: ${c.title}</option>`).join('');
+      chapters.map(c => `<option value="${c.chapterId}" ${c.chapterId === selectedChapterId ? 'selected' : ''}>${c.title}</option>`).join('');
   } catch (err) {
     console.error('Failed to load chapters for question modal:', err);
   }
@@ -385,127 +385,6 @@ window.deleteQuestion = async function(id) {
     alert('Error deleting question');
   }
 };
-
-
-// --- Chapter Management Frontend Handlers ---
-
-window.currentChapters = [];
-
-async function loadChapters() {
-  try {
-    const res = await fetch('/api/chapters');
-    const data = await res.json();
-    const tbody = document.getElementById('chapter-table-body');
-    if (!tbody) return;
-
-    if (!data.success || data.chapters.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-xs text-slate-500">No chapters added yet.</td></tr>`;
-      return;
-    }
-
-    window.currentChapters = data.chapters;
-
-    tbody.innerHTML = data.chapters.map((chap, index) => `
-      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-        <td class="px-4 py-3 font-mono text-xs text-indigo-300">${chap.chapterId}</td>
-        <td class="px-4 py-3 text-xs font-medium text-white">${chap.title}</td>
-        <td class="px-4 py-3 text-xs text-slate-300"><span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">${chap.topic}</span></td>
-        <td class="px-4 py-3 text-xs text-slate-400 truncate max-w-xs">${chap.content}</td>
-        <td class="px-4 py-3 text-right space-x-2">
-          <button onclick="editChapterByIndex(${index})" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs transition-colors">Edit</button>
-          <button onclick="deleteChapter('${chap._id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs transition-colors">Delete</button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (err) {
-    console.error('Failed to load chapters:', err);
-  }
-}
-
-window.openChapterModal = function() {
-  document.getElementById('chapter-modal-title').textContent = 'Add New Chapter';
-  document.getElementById('edit-chapter-mongo-id').value = '';
-  document.getElementById('chapterForm').reset();
-
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
-  
-  const topicSelect = document.getElementById('modal-chapter-topic');
-  if (topicSelect) {
-    topicSelect.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
-  }
-
-  document.getElementById('chapterModal').classList.remove('hidden');
-};
-
-window.closeChapterModal = function() {
-  document.getElementById('chapterModal').classList.add('hidden');
-};
-
-window.editChapterByIndex = function(index) {
-  const chap = window.currentChapters[index];
-  if (!chap) return;
-
-  document.getElementById('chapter-modal-title').textContent = 'Edit Chapter';
-  document.getElementById('edit-chapter-mongo-id').value = chap._id;
-  
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
-  const topicSelect = document.getElementById('modal-chapter-topic');
-  if (topicSelect) {
-    topicSelect.innerHTML = topics.map(t => `<option value="${t}" ${t === chap.topic ? 'selected' : ''}>${t}</option>`).join('');
-  }
-
-  document.getElementById('modal-chapter-title').value = chap.title;
-  document.getElementById('modal-chapter-content').value = chap.content;
-  document.getElementById('chapterModal').classList.remove('hidden');
-};
-
-window.handleChapterSubmit = async function(e) {
-  e.preventDefault();
-  const mongoId = document.getElementById('edit-chapter-mongo-id').value;
-  const chapterData = {
-    title: document.getElementById('modal-chapter-title').value,
-    topic: document.getElementById('modal-chapter-topic').value,
-    content: document.getElementById('modal-chapter-content').value
-  };
-
-  const url = mongoId ? `/api/chapters/${mongoId}` : '/api/chapters';
-  const method = mongoId ? 'PUT' : 'POST';
-
-  try {
-    const res = await fetch(url, {
-      method: method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(chapterData)
-    });
-    const data = await res.json();
-    if (data.success) {
-      closeChapterModal();
-      loadChapters();
-    } else {
-      alert(data.message || 'Operation failed');
-    }
-  } catch (err) {
-    console.error('Error saving chapter:', err);
-  }
-};
-
-window.deleteChapter = async function(mongoId) {
-  if (!confirm('Are you sure you want to delete this chapter?')) return;
-  try {
-    const res = await fetch(`/api/chapters/${mongoId}`, { method: 'DELETE' });
-    const data = await res.json();
-    if (data.success) {
-      loadChapters();
-    } else {
-      alert(data.message || 'Failed to delete chapter');
-    }
-  } catch (err) {
-    console.error('Error deleting chapter:', err);
-  }
-};
-
 
 function showTeacherPodiumModal(leaderboard) {
   const sorted = [...leaderboard].sort((a, b) => {
