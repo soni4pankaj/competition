@@ -6,3 +6,37 @@ git push origin main
 
 
 https://universe-quiz.onrender.com/public/images/celebration.gif
+
+
+**************delete table content fully*********
+
+node -e "const mongoose = require('mongoose'); require('dotenv').config({ path: 'atlas-credentials.env' }); mongoose.connect(process.env.MONGODB_URI).then(async () => { await mongoose.connection.collection('chapters').deleteMany({}); console.log('Chapters cleared!'); process.exit(0); });"
+
+
+
+
+Workflow:
+
+***************admin role*************
+
+Admin can create a Topic which is required at the time of User creation as User need to assign a Topic.
+
+Admin can add user/ update user / delete user
+
+******************user role*******************
+
+When teacher logged in he has 4 activity
+
+1. He got all the topic assigned to him. 
+2. He will pick one topic and generate QR for participant to join. thereafter they will attempt two types of QUIZ Rapid fire and Paper based.
+3. Till this point all functionality is fine.
+4. Now we have added two more QUIZ type Ch6. To apter based Rapid file and Chapter bases Paper.
+5. Drop down is already created for them.
+
+6. To perform above two new QUIZ we need chapter management.
+7. we have designed the chaper add functionality but other feature is not available.
+8. We need to design these and then QUIZ to be played.
+9 Lets design chapter management first step by step
+
+
+2. He will pick any topic from drop down and add Chapter and its content to that Topic. I mean all management function to be here.

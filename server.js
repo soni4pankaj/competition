@@ -263,44 +263,49 @@ app.post('/api/topics/:topicId/questions', async (req, res) => {
 });
 
 // Bulk Upload Endpoint (Supports Excel file upload)
-app.post('/api/topics/:topicId/bulk-upload', upload.single('file'), async (req, res) => {
-  try {
-    const { topicId } = req.params;
-    let questionsData = [];
+	// Bulk Upload Endpoint (Supports Excel file upload linked to a chapter or topic)
+	app.post('/api/topics/:topicId/bulk-upload', upload.single('file'), async (req, res) => {
+	  try {
+		const { topicId } = req.params;
+		const { chapterId } = req.body; // Capture chapterId from request
+		let questionsData = [];
 
-    if (req.file) {
-      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet);
+		if (req.file) {
+		  const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+		  const sheetName = workbook.SheetNames[0];
+		  const sheet = workbook.Sheets[sheetName];
+		  const rows = XLSX.utils.sheet_to_json(sheet);
 
-      const lastQuestion = await Question.findOne().sort({ id: -1 });
-      let nextId = lastQuestion ? lastQuestion.id + 1 : 1;
+		  const lastQuestion = await Question.findOne().sort({ id: -1 });
+		  let nextId = lastQuestion ? lastQuestion.id + 1 : 1;
 
-      questionsData = rows.map((row) => ({
-        id: nextId++,
-        question: row.question || row.Question,
-        options: [
-          row.option1 || row.Option1 || '',
-          row.option2 || row.Option2 || '',
-          row.option3 || row.Option3 || '',
-          row.option4 || row.Option4 || ''
-        ],
-        answer: parseInt(row.answer !== undefined ? row.answer : row.Answer),
-        category: topicId
-      }));
-    }
+		  questionsData = rows.map((row) => ({
+			id: nextId++,
+			question: row.question || row.Question,
+			options: [
+			  row.option1 || row.Option1 || '',
+			  row.option2 || row.Option2 || '',
+			  row.option3 || row.Option3 || '',
+			  row.option4 || row.Option4 || ''
+			],
+			answer: parseInt(row.answer !== undefined ? row.answer : row.Answer),
+			category: topicId,
+		// Pull chapterId from Excel row if present, otherwise fall back to request body dropdown
+			chapterId: row.chapterId || row.ChapterId || chapterId || null
+		}));
+		}
 
-    if (questionsData.length === 0) {
-      return res.status(400).json({ success: false, message: 'No valid questions found in uploaded file.' });
-    }
+		if (questionsData.length === 0) {
+		  return res.status(400).json({ success: false, message: 'No valid questions found in uploaded file.' });
+		}
 
-    await Question.insertMany(questionsData);
-    res.json({ success: true, message: `Successfully uploaded ${questionsData.length} questions!` });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to process bulk upload: ' + err.message });
-  }
-});
+		await Question.insertMany(questionsData);
+		res.json({ success: true, message: `Successfully uploaded ${questionsData.length} questions!` });
+	  } catch (err) {
+		res.status(500).json({ success: false, message: 'Failed to process bulk upload: ' + err.message });
+	  }
+	});
+
 
 // SOCKET.IO REAL-TIME GAME LOGIC
 io.on('connection', (socket) => {
@@ -351,12 +356,33 @@ io.on('connection', (socket) => {
   });
 
   // --- TEACHER & RAPID-FIRE / PAPER MODE SOCKET HANDLERS ---
-	socket.on('create_teacher_room', async ({ roomId, category, mode, chapterText }) => {
+	socket.on('create_teacher_room', async ({ roomId, category, mode, chapterId }) => {
     socket.join(roomId);
 
-    let fetchedQuestions = await Question.find({ category });
+    let fetchedQuestions = [];
+
+    // 1. If a chapter was selected, look for questions linked to this chapterId
+    if (chapterId) {
+      fetchedQuestions = await Question.find({ chapterId });
+    }
+
+    // 2. Fall back to category/topic questions if no chapter-specific questions found
+    if (fetchedQuestions.length === 0) {
+      fetchedQuestions = await Question.find({ category });
+    }
+
+    // 3. Fall back to default questions if category is also empty
     if (fetchedQuestions.length === 0) {
       fetchedQuestions = await Question.find({ category: 'default' });
+    }
+
+    // Fetch chapter reading text
+    let chapterText = "Please read the assigned material carefully before the assessment begins.";
+    if (chapterId) {
+      const foundChapter = await Chapter.findOne({ chapterId });
+      if (foundChapter) {
+        chapterText = foundChapter.content;
+      }
     }
 
     const reqHost = socket.handshake.headers.host;
@@ -370,7 +396,7 @@ io.on('connection', (socket) => {
       category,
       mode, 
       questions: fetchedQuestions,
-      chapterText: chapterText || "Please read the assigned material carefully before the assessment begins.",
+      chapterText: chapterText,
       currentQuestionIndex: 0,
       players: existingPlayers, 
       answers: {},
@@ -379,7 +405,8 @@ io.on('connection', (socket) => {
 
     socket.emit('room_ready', { qrCode: qrImage, roomId });
   });
-
+  
+  
   socket.on('join_teacher_lobby', ({ roomId, name }) => {
     const room = rooms[roomId];
     if (!room) return socket.emit('error_msg', 'Room not found! Please create the room first.');
@@ -575,3 +602,42 @@ server.listen(PORT, HOST, () => {
   console.log(`Network Join Link: http://${localIP}:${PORT}/participant.html`);
   console.log('----------------------------------------------------');
 });
+
+// Function to automatically create the initial Admin user
+async function seedAdminUser() {
+  try {
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (!adminExists) {
+      await User.create({
+        username: 'admin',
+        password: 'adminpassword', // You can change this to your desired password
+        role: 'admin',
+        assignedTopics: ['default', 'banking', 'finance']
+      });
+      console.log('----------------------------------------------------');
+      console.log('✅ Initial Admin created successfully!');
+      console.log('   Username: admin');
+      console.log('   Password: adminpassword');
+      console.log('----------------------------------------------------');
+    }
+  } catch (err) {
+    console.error('Error seeding admin user:', err);
+  }
+}
+
+
+const chapterRoutes = require('./routes/chapters'); // <-- Add this
+app.use('/api/chapters', chapterRoutes);           // <-- Add this
+
+
+
+// Connect to MongoDB Atlas
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Successfully connected to MongoDB Atlas.');
+    seedAdminUser(); // Call the admin seeder here
+  })
+  .catch((err) => console.error('MongoDB connection error:', err));
+  
+const Chapter = require('./models/Chapter');
+
