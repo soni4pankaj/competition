@@ -240,8 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
     questionForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('edit-question-id').value;
-      const manageTopicSelect = document.getElementById('teacher-manage-topic-select');
-      const topic = manageTopicSelect ? manageTopicSelect.value : 'default';
+      const topic = document.getElementById('modal-question-topic').value;
+      const chapterId = document.getElementById('modal-question-chapter').value || null;
       const questionText = document.getElementById('modal-question-text').value;
       const options = [
         document.getElementById('modal-option-0').value,
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ];
       const answer = parseInt(document.getElementById('modal-correct-answer').value);
 
-      const payload = { question: questionText, options, answer, category: topic };
+      const payload = { question: questionText, options, answer, category: topic, chapterId };
 
       try {
         const url = id ? `/api/questions/${id}` : `/api/topics/${encodeURIComponent(topic)}/questions`;
@@ -311,19 +311,54 @@ async function loadQuestionsForTopic(topic) {
   }
 }
 
-function openQuestionModal(question = null) {
+async function openQuestionModal(question = null) {
   const modal = document.getElementById('questionModal');
   const title = document.getElementById('question-modal-title');
   document.getElementById('edit-question-id').value = question ? (question._id || question.id) : '';
+
+  // Get teacher's assigned topics
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
+  const currentManageTopic = document.getElementById('teacher-manage-topic-select')?.value || topics[0];
+
+  // Populate topic dropdown
+  const topicSelect = document.getElementById('modal-question-topic');
+  if (topicSelect) {
+    topicSelect.innerHTML = topics.map(t => `<option value="${t}" ${t === (question?.category || currentManageTopic) ? 'selected' : ''}>${t}</option>`).join('');
+  }
+
+  // Populate chapter dropdown for the selected topic
+  await updateChapterDropdownForModal(topicSelect?.value, question?.chapterId);
+
+  // When teacher changes the topic in modal, update chapter choices dynamically
+  if (topicSelect) {
+    topicSelect.onchange = (e) => updateChapterDropdownForModal(e.target.value);
+  }
+
   document.getElementById('modal-question-text').value = question ? (question.question || question.questionText) : '';
-  
   for (let i = 0; i < 4; i++) {
     document.getElementById(`modal-option-${i}`).value = question && question.options ? question.options[i] : '';
   }
   document.getElementById('modal-correct-answer').value = question ? (question.answer !== undefined ? question.answer : question.correctAnswer) : '0';
-  
+
   title.textContent = question ? 'Edit Question' : 'Add New Question';
   modal.classList.remove('hidden');
+}
+
+async function updateChapterDropdownForModal(topic, selectedChapterId = '') {
+  const chapterSelect = document.getElementById('modal-question-chapter');
+  if (!chapterSelect) return;
+
+  try {
+    const res = await fetch('/api/chapters');
+    const data = await res.json();
+    const chapters = data.success ? data.chapters.filter(c => c.topic === topic) : [];
+
+    chapterSelect.innerHTML = `<option value="">-- General Topic Question --</option>` + 
+      chapters.map(c => `<option value="${c.chapterId}" ${c.chapterId === selectedChapterId ? 'selected' : ''}>${c.chapterId}: ${c.title}</option>`).join('');
+  } catch (err) {
+    console.error('Failed to load chapters for question modal:', err);
+  }
 }
 
 function closeQuestionModal() {
@@ -334,102 +369,97 @@ window.editQuestion = function(q) {
   openQuestionModal(q);
 };
 
-	window.deleteQuestion = async function(id) {
-	  if (!confirm('Are you sure you want to delete this question?')) return;
-	  try {
-		const res = await fetch(`/api/questions/${id}`, { method: 'DELETE' });
-		const data = await res.json();
-		if (data.success) {
-		  const manageTopicSelect = document.getElementById('teacher-manage-topic-select');
-		  const topic = manageTopicSelect ? manageTopicSelect.value : 'default';
-		  loadQuestionsForTopic(topic);
-		} else {
-		  alert(data.message || 'Failed to delete');
-		}
-	  } catch (err) {
-		alert('Error deleting question');
-	  }
-	};
+window.deleteQuestion = async function(id) {
+  if (!confirm('Are you sure you want to delete this question?')) return;
+  try {
+    const res = await fetch(`/api/questions/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      const manageTopicSelect = document.getElementById('teacher-manage-topic-select');
+      const topic = manageTopicSelect ? manageTopicSelect.value : 'default';
+      loadQuestionsForTopic(topic);
+    } else {
+      alert(data.message || 'Failed to delete');
+    }
+  } catch (err) {
+    alert('Error deleting question');
+  }
+};
 
 
-	// --- Chapter Management Frontend Handlers ---
+// --- Chapter Management Frontend Handlers ---
 
-// Store chapters globally for safe index-based lookup
-	window.currentChapters = [];
+window.currentChapters = [];
 
-	async function loadChapters() {
-	  try {
-		const res = await fetch('/api/chapters');
-		const data = await res.json();
-		const tbody = document.getElementById('chapter-table-body');
-		if (!tbody) return;
+async function loadChapters() {
+  try {
+    const res = await fetch('/api/chapters');
+    const data = await res.json();
+    const tbody = document.getElementById('chapter-table-body');
+    if (!tbody) return;
 
-		if (!data.success || data.chapters.length === 0) {
-		  tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-xs text-slate-500">No chapters added yet.</td></tr>`;
-		  return;
-		}
+    if (!data.success || data.chapters.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-6 text-center text-xs text-slate-500">No chapters added yet.</td></tr>`;
+      return;
+    }
 
-		// Save chapters globally so we can reference them safely by index
-		window.currentChapters = data.chapters;
+    window.currentChapters = data.chapters;
 
-		tbody.innerHTML = data.chapters.map((chap, index) => `
-		  <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-			<td class="px-4 py-3 font-mono text-xs text-indigo-300">${chap.chapterId}</td>
-			<td class="px-4 py-3 text-xs font-medium text-white">${chap.title}</td>
-			<td class="px-4 py-3 text-xs text-slate-300"><span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">${chap.topic}</span></td>
-			<td class="px-4 py-3 text-xs text-slate-400 truncate max-w-xs">${chap.content}</td>
-			<td class="px-4 py-3 text-right space-x-2">
-			  <button onclick="editChapterByIndex(${index})" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs transition-colors">Edit</button>
-			  <button onclick="deleteChapter('${chap._id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs transition-colors">Delete</button>
-			</td>
-		  </tr>
-		`).join('');
-	  } catch (err) {
-		console.error('Failed to load chapters:', err);
-	  }
-	}
+    tbody.innerHTML = data.chapters.map((chap, index) => `
+      <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+        <td class="px-4 py-3 font-mono text-xs text-indigo-300">${chap.chapterId}</td>
+        <td class="px-4 py-3 text-xs font-medium text-white">${chap.title}</td>
+        <td class="px-4 py-3 text-xs text-slate-300"><span class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">${chap.topic}</span></td>
+        <td class="px-4 py-3 text-xs text-slate-400 truncate max-w-xs">${chap.content}</td>
+        <td class="px-4 py-3 text-right space-x-2">
+          <button onclick="editChapterByIndex(${index})" class="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-xs transition-colors">Edit</button>
+          <button onclick="deleteChapter('${chap._id}')" class="px-2.5 py-1 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 text-xs transition-colors">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load chapters:', err);
+  }
+}
 
-	window.editChapterByIndex = function(index) {
-	  const chap = window.currentChapters[index];
-	  if (!chap) return;
+window.openChapterModal = function() {
+  document.getElementById('chapter-modal-title').textContent = 'Add New Chapter';
+  document.getElementById('edit-chapter-mongo-id').value = '';
+  document.getElementById('chapterForm').reset();
 
-	  document.getElementById('chapter-modal-title').textContent = 'Edit Chapter';
-	  document.getElementById('edit-chapter-mongo-id').value = chap._id;
-	  
-	  // Populate the topic dropdown with teacher's assigned topics, selecting the current chapter's topic
-	  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-	  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
-	  const topicSelect = document.getElementById('modal-chapter-topic');
-	  if (topicSelect) {
-		topicSelect.innerHTML = topics.map(t => `<option value="${t}" ${t === chap.topic ? 'selected' : ''}>${t}</option>`).join('');
-	  }
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
+  
+  const topicSelect = document.getElementById('modal-chapter-topic');
+  if (topicSelect) {
+    topicSelect.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
 
-	  document.getElementById('modal-chapter-title').value = chap.title;
-	  document.getElementById('modal-chapter-content').value = chap.content;
-	  document.getElementById('chapterModal').classList.remove('hidden');
-	};
+  document.getElementById('chapterModal').classList.remove('hidden');
+};
 
-	window.openChapterModal = function() {
-	  document.getElementById('chapter-modal-title').textContent = 'Add New Chapter';
-	  document.getElementById('edit-chapter-mongo-id').value = '';
-	  document.getElementById('chapterForm').reset();
+window.closeChapterModal = function() {
+  document.getElementById('chapterModal').classList.add('hidden');
+};
 
-	  // Populate topic dropdown using teacher's assigned topics
-	  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-	  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
-	  
-	  const topicSelect = document.getElementById('modal-chapter-topic');
-	  if (topicSelect) {
-		topicSelect.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
-	  }
+window.editChapterByIndex = function(index) {
+  const chap = window.currentChapters[index];
+  if (!chap) return;
 
-	  document.getElementById('chapterModal').classList.remove('hidden');
-	};
+  document.getElementById('chapter-modal-title').textContent = 'Edit Chapter';
+  document.getElementById('edit-chapter-mongo-id').value = chap._id;
+  
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
+  const topicSelect = document.getElementById('modal-chapter-topic');
+  if (topicSelect) {
+    topicSelect.innerHTML = topics.map(t => `<option value="${t}" ${t === chap.topic ? 'selected' : ''}>${t}</option>`).join('');
+  }
 
-	window.closeChapterModal = function() {
-	  document.getElementById('chapterModal').classList.add('hidden');
-	};
-
+  document.getElementById('modal-chapter-title').value = chap.title;
+  document.getElementById('modal-chapter-content').value = chap.content;
+  document.getElementById('chapterModal').classList.remove('hidden');
+};
 
 window.handleChapterSubmit = async function(e) {
   e.preventDefault();
@@ -475,10 +505,6 @@ window.deleteChapter = async function(mongoId) {
     console.error('Error deleting chapter:', err);
   }
 };
-
-function escapeHtml(str) {
-  return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-}
 
 
 function showTeacherPodiumModal(leaderboard) {
