@@ -43,11 +43,15 @@ window.initTeacherDashboard = function(user) {
         window.socket = io();
       }
 
-      socket.emit('create_teacher_room', { 
-        roomId: window.currentRoomId, 
-        category: selectedTopic, 
-        mode: selectedMode 
-      });
+		const selectedChapter = document.getElementById('teacher-chapter-select')?.value || null;
+
+		socket.emit('create_teacher_room', { 
+		  roomId: window.currentRoomId, 
+		  category: selectedTopic, 
+		  mode: selectedMode,
+		  chapterId: selectedMode.startsWith('chapter_') ? selectedChapter : null
+		});
+
     });
   }
 };
@@ -455,3 +459,178 @@ function showTeacherPodiumModal(leaderboard) {
 
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
+
+
+// --- Chapter Management Logic ---
+
+// --- Chapter Management Logic ---
+
+// Fetch and load all chapters for teacher's topics
+async function loadChapters() {
+  const tbody = document.getElementById('chapters-table-body');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch('/api/chapters');
+    const data = await res.json();
+    
+    if (data.success && data.chapters.length > 0) {
+      tbody.innerHTML = '';
+      data.chapters.forEach(c => {
+        tbody.innerHTML += `
+          <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+            <td class="px-4 py-3 text-xs text-purple-300 font-semibold">${c.topic}</td>
+            <td class="px-4 py-3 text-xs text-slate-200 font-medium">${c.title}</td>
+            <td class="px-4 py-3 text-xs text-slate-400 truncate max-w-xs">${c.content}</td>
+            <td class="px-4 py-3 text-xs text-right space-x-2">
+              <button onclick='editChapter(${JSON.stringify(c)})' class="px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-300 hover:bg-blue-500/20">Edit</button>
+              <button onclick='deleteChapter("${c.chapterId}")' class="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-300 hover:bg-rose-500/20">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    } else {
+      tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">No chapters found. Click "Add Chapter" to create one.</td></tr>`;
+    }
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-rose-400">Failed to load chapters.</td></tr>`;
+  }
+}
+
+// Populate Chapter Dropdown for Quiz Session Configuration
+async function updateChapterDropdownForSession(topic) {
+  const chapterSelect = document.getElementById('teacher-chapter-select');
+  if (!chapterSelect) return;
+
+  try {
+    const res = await fetch(`/api/chapters?topic=${encodeURIComponent(topic)}`);
+    const data = await res.json();
+
+    if (data.success && data.chapters.length > 0) {
+      chapterSelect.innerHTML = data.chapters.map(c => `<option value="${c.chapterId}">${c.title}</option>`).join('');
+    } else {
+      chapterSelect.innerHTML = `<option value="">No chapters available for this topic</option>`;
+    }
+  } catch (err) {
+    console.error('Error fetching chapters for room setup:', err);
+  }
+}
+
+// Global modal handling for chapters
+window.editChapter = function(chapter) {
+  document.getElementById('edit-chapter-id').value = chapter.chapterId || chapter._id;
+  document.getElementById('modal-chapter-title').value = chapter.title;
+  document.getElementById('modal-chapter-content').value = chapter.content;
+  
+  // Populate assigned topics dynamically and select the chapter's current topic
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
+  
+  const modalTopicSelect = document.getElementById('modal-chapter-topic');
+  if (modalTopicSelect) {
+    modalTopicSelect.innerHTML = topics.map(t => `<option value="${t}" ${t === chapter.topic ? 'selected' : ''}>${t}</option>`).join('');
+  }
+
+  const titleEl = document.getElementById('chapter-modal-title');
+  if (titleEl) titleEl.textContent = 'Edit Chapter';
+
+  document.getElementById('chapterModal').classList.remove('hidden');
+};
+
+
+window.deleteChapter = async function(chapterId) {
+  if (!confirm('Are you sure you want to delete this chapter?')) return;
+  try {
+    const res = await fetch(`/api/chapters/${chapterId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      loadChapters();
+    } else {
+      alert(data.message || 'Failed to delete chapter');
+    }
+  } catch (err) {
+    alert('Error deleting chapter');
+  }
+};
+
+// Initialize Chapter UI bindings immediately or safely when ready
+document.addEventListener('DOMContentLoaded', () => {
+  loadChapters();
+
+  const modeSelect = document.getElementById('teacher-mode-select');
+  const chapterContainer = document.getElementById('chapter-select-container');
+  const topicSelect = document.getElementById('teacher-topic-select');
+
+  if (modeSelect) {
+    modeSelect.addEventListener('change', (e) => {
+      const isChapterMode = e.target.value.startsWith('chapter_');
+      if (chapterContainer) {
+        chapterContainer.classList.toggle('hidden', !isChapterMode);
+      }
+      if (isChapterMode && topicSelect) {
+        updateChapterDropdownForSession(topicSelect.value);
+      }
+    });
+  }
+
+  if (topicSelect) {
+    topicSelect.addEventListener('change', (e) => {
+      if (modeSelect && modeSelect.value.startsWith('chapter_')) {
+        updateChapterDropdownForSession(e.target.value);
+      }
+    });
+  }
+
+  const openChapterBtn = document.getElementById('open-add-chapter-modal-btn');
+  if (openChapterBtn) {
+    openChapterBtn.onclick = () => {
+      document.getElementById('edit-chapter-id').value = '';
+      document.getElementById('chapterForm').reset();
+      
+      const titleEl = document.getElementById('chapter-modal-title');
+      if (titleEl) titleEl.textContent = 'Add Chapter';
+
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const topics = currentUser.assignedTopics || ['default'];
+      const modalTopicSelect = document.getElementById('modal-chapter-topic');
+      if (modalTopicSelect) {
+        modalTopicSelect.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
+      }
+
+      document.getElementById('chapterModal').classList.remove('hidden');
+    };
+  }
+
+  const chapterForm = document.getElementById('chapterForm');
+  if (chapterForm) {
+    chapterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const chapterId = document.getElementById('edit-chapter-id').value;
+      const title = document.getElementById('modal-chapter-title').value;
+      const topic = document.getElementById('modal-chapter-topic').value;
+      const content = document.getElementById('modal-chapter-content').value;
+
+      const url = chapterId ? `/api/chapters/${chapterId}` : '/api/chapters';
+      const method = chapterId ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, topic, content })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('chapterModal').classList.add('hidden');
+          loadChapters();
+        } else {
+          alert(data.message || 'Error saving chapter');
+        }
+      } catch (err) {
+        alert('Failed to save chapter');
+      }
+    });
+  }
+});

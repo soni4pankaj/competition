@@ -12,50 +12,68 @@ router.get('/', async (req, res) => {
     }
 });
 
-// Add a new chapter with auto-generated unique ID
-router.post('/', async (req, res) => {
-    try {
-        const { title, topic, content } = req.body;
-        const chapterId = 'chap_' + Math.random().toString(36).substring(2, 8);
-        const newChapter = new Chapter({ chapterId, title, topic, content });
-        await newChapter.save();
-        res.json({ success: true, message: 'Chapter added successfully!', chapter: newChapter });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
+	// Add a new chapter with auto-generated unique ID
+	router.post('/', async (req, res) => {
+		try {
+			const { title, topic, content } = req.body;
+			const chapterId = 'chap_' + Math.random().toString(36).substring(2, 8);
+			const newChapter = new Chapter({ chapterId, title, topic, content });
+			await newChapter.save();
+			res.json({ success: true, message: 'Chapter added successfully!', chapter: newChapter });
+		} catch (err) {
+			res.status(500).json({ success: false, message: err.message });
+		}
+	});
 
-// Update an existing chapter by ID
-router.put('/:id', async (req, res) => {
-    try {
-        const { title, topic, content } = req.body;
-        const updatedChapter = await Chapter.findByIdAndUpdate(
-            req.params.id,
-            { title, topic, content },
-            { new: true, runValidators: true }
-        );
+	// Update an existing chapter by ID
+	// Update an existing chapter by ID
+	router.put('/:id', async (req, res) => {
+		try {
+			const { title, topic, content } = req.body;
+			
+			// Try finding by custom chapterId first, then fall back to _id
+			let updatedChapter = await Chapter.findOneAndUpdate(
+				{ chapterId: req.params.id },
+				{ title, topic, content },
+				{ returnDocument: 'after', runValidators: true }
+			);
 
-        if (!updatedChapter) {
-            return res.status(404).json({ success: false, message: 'Chapter not found' });
-        }
+			if (!updatedChapter) {
+				updatedChapter = await Chapter.findByIdAndUpdate(
+					req.params.id,
+					{ title, topic, content },
+					{ returnDocument: 'after', runValidators: true }
+				);
+			}
 
-        res.json({ success: true, message: 'Chapter updated successfully!', chapter: updatedChapter });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
+			if (!updatedChapter) {
+				return res.status(404).json({ success: false, message: 'Chapter not found' });
+			}
 
-// Delete a chapter
-router.delete('/:id', async (req, res) => {
-    try {
-        const deletedChapter = await Chapter.findByIdAndDelete(req.params.id);
-        if (!deletedChapter) {
-            return res.status(404).json({ success: false, message: 'Chapter not found' });
-        }
-        res.json({ success: true, message: 'Chapter deleted successfully!' });
-    } catch (err) {
-        res.status(500).json({ success: false, message: 'Failed to delete chapter' });
-    }
-});
+			res.json({ success: true, message: 'Chapter updated successfully!', chapter: updatedChapter });
+		} catch (err) {
+			res.status(500).json({ success: false, message: err.message });
+		}
+	});
+
+	// Delete a chapter
+	router.delete('/:id', async (req, res) => {
+		try {
+			// Try deleting by custom chapterId first, then fall back to _id
+			let deletedChapter = await Chapter.findOneAndDelete({ chapterId: req.params.id });
+
+			if (!deletedChapter) {
+				deletedChapter = await Chapter.findByIdAndDelete(req.params.id);
+			}
+
+			if (!deletedChapter) {
+				return res.status(404).json({ success: false, message: 'Chapter not found' });
+			}
+			
+			res.json({ success: true, message: 'Chapter deleted successfully!' });
+		} catch (err) {
+			res.status(500).json({ success: false, message: 'Failed to delete chapter: ' + err.message });
+		}
+	});
 
 module.exports = router;

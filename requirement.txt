@@ -15,6 +15,7 @@ https://universe-quiz.onrender.com/public/images/celebration.gif
 node -e "const mongoose = require('mongoose'); require('dotenv').config({ path: 'atlas-credentials.env' }); mongoose.connect(process.env.MONGODB_URI).then(async () => { await mongoose.connection.collection('chapters').deleteMany({}); console.log('Chapters cleared!'); process.exit(0); });"
 
 
+node -e "const mongoose = require('mongoose'); require('dotenv').config({ path: 'atlas-credentials.env' }); mongoose.connect(process.env.MONGODB_URI).then(async () => { await mongoose.connection.collection('question').deleteMany({}); console.log('Chapters cleared!'); process.exit(0); });"
 
 
 Workflow:
@@ -42,3 +43,27 @@ When teacher logged in he has 4 activity
 
 
 2. He will pick any topic from drop down and add Chapter and its content to that Topic. I mean all management function to be here.
+
+
+
+***************fixing*********************
+
+1.	Open your terminal and navigate to your local universe project folder (not the Competition folder).
+2.	
+
+
+***************Environment Setting***********
+MONGODB_PASSWORD		N6zv4IkoTFSCua6f
+
+MONGODB_URI
+mongodb+srv://soni4pankaj_db_user:N6zv4IkoTFSCua6f@universe.zoalzfs.mongodb.net/quiz_db?retryWrites=true&w=majority
+
+
+MONGODB_USERNAME		soni4pankaj_db_user
+
+PUBLIC_URL		https://universe-quiz.onrender.com/
+
+
+
+
+

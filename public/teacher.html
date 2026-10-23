@@ -85,11 +85,20 @@
         </div>
         <div>
           <label class="block text-xs font-medium text-slate-300 mb-1">Quiz Mode</label>
-          <select id="teacher-mode-select" class="w-full px-4 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <option value="rapid">Rapid-Fire Mode (20s per question + 5s break)</option>
-            <option value="paper">Paper Style Mode (All questions at once with timer)</option>
-          </select>
-        </div>
+			<select id="teacher-mode-select" class="w-full px-4 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+			  <option value="rapid">Rapid-Fire Mode (20s per question + 5s break)</option>
+			  <option value="paper">Paper Style Mode (All questions at once with timer)</option>
+			  <option value="chapter_rapid">Chapter-Based Rapid Fire (5 min reading + Rapid Fire)</option>
+			  <option value="chapter_paper">Chapter-Based Paper Quiz (5 min reading + Paper Quiz)</option>
+			</select> 
+       </div>
+		<!-- Chapter Selection for Chapter-based Modes (Hidden by default) -->
+		<div id="chapter-select-container" class="hidden mt-3">
+		  <label class="block text-xs font-medium text-slate-300 mb-1">Select Chapter</label>
+		  <select id="teacher-chapter-select" class="w-full px-4 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+			<!-- Populated dynamically -->
+		  </select>
+		</div>
         <button id="create-room-btn" class="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all">
           Generate QR Code Lobby
         </button>
@@ -214,6 +223,70 @@
       </form>
     </div>
   </div>
+
+
+<!-- Chapter Management Section -->
+<div class="bg-slate-900/40 p-6 rounded-3xl border border-white/10 backdrop-blur-xl space-y-4">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+        <i data-lucide="file-text" class="w-5 h-5 text-purple-400"></i>
+        Chapter & Content Manager
+      </h2>
+      <p class="text-xs text-slate-400">Add and edit reading material for assigned topics to enable chapter-based quizzes.</p>
+    </div>
+    <button id="open-add-chapter-modal-btn" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-600/30 transition-all flex items-center gap-1.5">
+      <i data-lucide="plus" class="w-4 h-4"></i>
+      <span>Add Chapter</span>
+    </button>
+  </div>
+
+  <div class="rounded-2xl border border-white/10 bg-slate-950/40 backdrop-blur-xl overflow-hidden">
+    <table class="w-full text-left border-collapse">
+      <thead>
+        <tr class="border-b border-white/10 bg-white/5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          <th class="px-4 py-3">Topic</th>
+          <th class="px-4 py-3">Chapter Title</th>
+          <th class="px-4 py-3">Content Snippet</th>
+          <th class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="chapters-table-body">
+        <tr>
+          <td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">Loading chapters...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+	<!-- Chapter Add/Edit Modal -->
+	<div id="chapterModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+	  <div class="bg-slate-900 border border-white/15 p-6 rounded-3xl w-full max-w-lg shadow-2xl relative">
+		<h2 id="chapter-modal-title" class="text-lg font-semibold text-white mb-4">Add Chapter</h2>
+		<form id="chapterForm" class="space-y-4">
+		  <input type="hidden" id="edit-chapter-id">
+		  <div>
+			<label class="block text-xs font-medium text-slate-300 mb-1">Assigned Topic</label>
+			<select id="modal-chapter-topic" required class="w-full px-4 py-2.5 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100 focus:outline-none">
+			  <!-- Populated dynamically -->
+			</select>
+		  </div>
+		  <div>
+			<label class="block text-xs font-medium text-slate-300 mb-1">Chapter Title</label>
+			<input type="text" id="modal-chapter-title" required placeholder="e.g., Module 1: Overview" class="w-full px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100" />
+		  </div>
+		  <div>
+			<label class="block text-xs font-medium text-slate-300 mb-1">Reading Content / Material</label>
+			<textarea id="modal-chapter-content" rows="5" required placeholder="Enter study text for students..." class="w-full px-4 py-2 rounded-xl bg-slate-950/50 border border-white/10 text-xs text-slate-100"></textarea>
+		  </div>
+		  <div class="flex justify-end gap-3 mt-4">
+			<button type="button" onclick="document.getElementById('chapterModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs">Cancel</button>
+			<button type="submit" class="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-semibold">Save Chapter</button>
+		  </div>
+		</form>
+	  </div>
+	</div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
