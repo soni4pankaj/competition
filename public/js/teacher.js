@@ -1,6 +1,30 @@
 // --- Teacher Dashboard & Socket Room Management Script ---
 
-// Global Teacher Dashboard Initialization (Defined at top-level to prevent timing issues)
+// Fetch latest user details from backend to ensure assigned topics are always up to date
+async function refreshTeacherProfile() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  if (!currentUser.username) return;
+
+  try {
+    const res = await fetch('/api/admin/users');
+    const data = await res.json();
+    if (data.success) {
+      const freshUser = data.users.find(u => u.username === currentUser.username);
+      if (freshUser) {
+        currentUser.assignedTopics = freshUser.assignedTopics || ['default'];
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        if (typeof initTeacherDashboard === 'function') {
+          initTeacherDashboard(currentUser);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to refresh teacher profile:', err);
+  }
+}
+
+// Global Teacher Dashboard Initialization (Restricted to assigned topics only)
 window.initTeacherDashboard = function(user) {
   const topics = user && user.assignedTopics && user.assignedTopics.length > 0 ? user.assignedTopics : ['default'];
 
@@ -22,12 +46,30 @@ window.initTeacherDashboard = function(user) {
     });
   }
 
+  // 3. Update the chapter modal topic selector if present
+  const modalChapterTopic = document.getElementById('modal-chapter-topic');
+  if (modalChapterTopic) {
+    modalChapterTopic.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+  
+  // 4. Restrict question modal topic dropdown as well
+  const modalQuestionTopic = document.getElementById('modal-question-topic');
+  if (modalQuestionTopic) {
+    modalQuestionTopic.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Refresh profile details on load to secure latest assigned topics
+  refreshTeacherProfile();
+
   const createRoomBtn = document.getElementById('create-room-btn');
   if (createRoomBtn) {
     const newBtn = createRoomBtn.cloneNode(true);
     createRoomBtn.parentNode.replaceChild(newBtn, createRoomBtn);
 
     newBtn.addEventListener('click', () => {
+      const topicSelect = document.getElementById('teacher-topic-select');
       const selectedTopic = topicSelect ? topicSelect.value : 'default';
       const selectedMode = document.getElementById('teacher-mode-select').value;
       window.currentRoomId = 'room_' + Math.random().toString(36).substring(2, 8);
@@ -43,20 +85,17 @@ window.initTeacherDashboard = function(user) {
         window.socket = io();
       }
 
-		const selectedChapter = document.getElementById('teacher-chapter-select')?.value || null;
+      const selectedChapter = document.getElementById('teacher-chapter-select')?.value || null;
 
-		socket.emit('create_teacher_room', { 
-		  roomId: window.currentRoomId, 
-		  category: selectedTopic, 
-		  mode: selectedMode,
-		  chapterId: selectedMode.startsWith('chapter_') ? selectedChapter : null
-		});
-
+      socket.emit('create_teacher_room', { 
+        roomId: window.currentRoomId, 
+        category: selectedTopic, 
+        mode: selectedMode,
+        chapterId: selectedMode.startsWith('chapter_') ? selectedChapter : null
+      });
     });
   }
-};
 
-document.addEventListener('DOMContentLoaded', () => {
   // Question Manager Controls Binding
   const showQuestionsBtn = document.getElementById('teacher-show-questions-btn');
   if (showQuestionsBtn) {
@@ -279,6 +318,84 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+
+  loadChapters();
+
+  const modeSelect = document.getElementById('teacher-mode-select');
+  const chapterContainer = document.getElementById('chapter-select-container');
+  const topicSelect = document.getElementById('teacher-topic-select');
+
+  if (modeSelect) {
+    modeSelect.addEventListener('change', (e) => {
+      const isChapterMode = e.target.value.startsWith('chapter_');
+      if (chapterContainer) {
+        chapterContainer.classList.toggle('hidden', !isChapterMode);
+      }
+      if (isChapterMode && topicSelect) {
+        updateChapterDropdownForSession(topicSelect.value);
+      }
+    });
+  }
+
+  if (topicSelect) {
+    topicSelect.addEventListener('change', (e) => {
+      if (modeSelect && modeSelect.value.startsWith('chapter_')) {
+        updateChapterDropdownForSession(e.target.value);
+      }
+    });
+  }
+
+  const openChapterBtn = document.getElementById('open-add-chapter-modal-btn');
+  if (openChapterBtn) {
+    openChapterBtn.onclick = () => {
+      document.getElementById('edit-chapter-id').value = '';
+      document.getElementById('chapterForm').reset();
+      
+      const titleEl = document.getElementById('chapter-modal-title');
+      if (titleEl) titleEl.textContent = 'Add Chapter';
+
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const topics = currentUser.assignedTopics || ['default'];
+      const modalTopicSelect = document.getElementById('modal-chapter-topic');
+      if (modalTopicSelect) {
+        modalTopicSelect.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
+      }
+
+      document.getElementById('chapterModal').classList.remove('hidden');
+    };
+  }
+
+  const chapterForm = document.getElementById('chapterForm');
+  if (chapterForm) {
+    chapterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const chapterId = document.getElementById('edit-chapter-id').value;
+      const title = document.getElementById('modal-chapter-title').value;
+      const topic = document.getElementById('modal-chapter-topic').value;
+      const content = document.getElementById('modal-chapter-content').value;
+
+      const url = chapterId ? `/api/chapters/${chapterId}` : '/api/chapters';
+      const method = chapterId ? 'PUT' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, topic, content })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          document.getElementById('chapterModal').classList.add('hidden');
+          loadChapters();
+        } else {
+          alert(data.message || 'Error saving chapter');
+        }
+      } catch (err) {
+        alert('Failed to save chapter');
+      }
+    });
+  }
 });
 
 async function loadQuestionsForTopic(topic) {
@@ -460,9 +577,6 @@ function showTeacherPodiumModal(leaderboard) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-
-// --- Chapter Management Logic ---
-
 // --- Chapter Management Logic ---
 
 // Fetch and load all chapters for teacher's topics
@@ -474,24 +588,35 @@ async function loadChapters() {
     const res = await fetch('/api/chapters');
     const data = await res.json();
     
+    // Get current teacher's assigned topics
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const allowedTopics = currentUser.assignedTopics || ['default'];
+
     if (data.success && data.chapters.length > 0) {
-      tbody.innerHTML = '';
-      data.chapters.forEach(c => {
-        tbody.innerHTML += `
-          <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-            <td class="px-4 py-3 text-xs text-purple-300 font-semibold">${c.topic}</td>
-            <td class="px-4 py-3 text-xs text-slate-200 font-medium">${c.title}</td>
-            <td class="px-4 py-3 text-xs text-slate-400 truncate max-w-xs">${c.content}</td>
-            <td class="px-4 py-3 text-xs text-right space-x-2">
-              <button onclick='editChapter(${JSON.stringify(c)})' class="px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-300 hover:bg-blue-500/20">Edit</button>
-              <button onclick='deleteChapter("${c.chapterId}")' class="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-300 hover:bg-rose-500/20">Delete</button>
-            </td>
-          </tr>
-        `;
-      });
+      // Filter chapters strictly by teacher's assigned topics
+      const myChapters = data.chapters.filter(c => allowedTopics.includes(c.topic));
+
+      if (myChapters.length > 0) {
+        tbody.innerHTML = '';
+        myChapters.forEach(c => {
+          tbody.innerHTML += `
+            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+              <td class="px-4 py-3 text-xs text-purple-300 font-semibold">${c.topic}</td>
+              <td class="px-4 py-3 text-xs text-slate-200 font-medium">${c.title}</td>
+              <td class="px-4 py-3 text-xs text-slate-400 truncate max-w-xs">${c.content}</td>
+              <td class="px-4 py-3 text-xs text-right space-x-2">
+                <button onclick='editChapter(${JSON.stringify(c)})' class="px-2.5 py-1.5 rounded-lg bg-blue-500/10 text-blue-300 hover:bg-blue-500/20">Edit</button>
+                <button onclick='deleteChapter("${c.chapterId}")' class="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-300 hover:bg-rose-500/20">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } else {
+        tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">No chapters found for your assigned topics.</td></tr>`;
+      }
       if (typeof lucide !== 'undefined') lucide.createIcons();
     } else {
-      tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">No chapters found. Click "Add Chapter" to create one.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-slate-500">No chapters found.</td></tr>`;
     }
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-center text-xs text-rose-400">Failed to load chapters.</td></tr>`;
@@ -523,7 +648,6 @@ window.editChapter = function(chapter) {
   document.getElementById('modal-chapter-title').value = chapter.title;
   document.getElementById('modal-chapter-content').value = chapter.content;
   
-  // Populate assigned topics dynamically and select the chapter's current topic
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const topics = currentUser.assignedTopics && currentUser.assignedTopics.length > 0 ? currentUser.assignedTopics : ['default'];
   
@@ -537,7 +661,6 @@ window.editChapter = function(chapter) {
 
   document.getElementById('chapterModal').classList.remove('hidden');
 };
-
 
 window.deleteChapter = async function(chapterId) {
   if (!confirm('Are you sure you want to delete this chapter?')) return;
@@ -553,84 +676,3 @@ window.deleteChapter = async function(chapterId) {
     alert('Error deleting chapter');
   }
 };
-
-// Initialize Chapter UI bindings immediately or safely when ready
-document.addEventListener('DOMContentLoaded', () => {
-  loadChapters();
-
-  const modeSelect = document.getElementById('teacher-mode-select');
-  const chapterContainer = document.getElementById('chapter-select-container');
-  const topicSelect = document.getElementById('teacher-topic-select');
-
-  if (modeSelect) {
-    modeSelect.addEventListener('change', (e) => {
-      const isChapterMode = e.target.value.startsWith('chapter_');
-      if (chapterContainer) {
-        chapterContainer.classList.toggle('hidden', !isChapterMode);
-      }
-      if (isChapterMode && topicSelect) {
-        updateChapterDropdownForSession(topicSelect.value);
-      }
-    });
-  }
-
-  if (topicSelect) {
-    topicSelect.addEventListener('change', (e) => {
-      if (modeSelect && modeSelect.value.startsWith('chapter_')) {
-        updateChapterDropdownForSession(e.target.value);
-      }
-    });
-  }
-
-  const openChapterBtn = document.getElementById('open-add-chapter-modal-btn');
-  if (openChapterBtn) {
-    openChapterBtn.onclick = () => {
-      document.getElementById('edit-chapter-id').value = '';
-      document.getElementById('chapterForm').reset();
-      
-      const titleEl = document.getElementById('chapter-modal-title');
-      if (titleEl) titleEl.textContent = 'Add Chapter';
-
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-      const topics = currentUser.assignedTopics || ['default'];
-      const modalTopicSelect = document.getElementById('modal-chapter-topic');
-      if (modalTopicSelect) {
-        modalTopicSelect.innerHTML = topics.map(t => `<option value="${t}">${t}</option>`).join('');
-      }
-
-      document.getElementById('chapterModal').classList.remove('hidden');
-    };
-  }
-
-  const chapterForm = document.getElementById('chapterForm');
-  if (chapterForm) {
-    chapterForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const chapterId = document.getElementById('edit-chapter-id').value;
-      const title = document.getElementById('modal-chapter-title').value;
-      const topic = document.getElementById('modal-chapter-topic').value;
-      const content = document.getElementById('modal-chapter-content').value;
-
-      const url = chapterId ? `/api/chapters/${chapterId}` : '/api/chapters';
-      const method = chapterId ? 'PUT' : 'POST';
-
-      try {
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, topic, content })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          document.getElementById('chapterModal').classList.add('hidden');
-          loadChapters();
-        } else {
-          alert(data.message || 'Error saving chapter');
-        }
-      } catch (err) {
-        alert('Failed to save chapter');
-      }
-    });
-  }
-});
