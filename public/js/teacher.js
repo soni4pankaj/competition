@@ -1,5 +1,36 @@
 // --- Teacher Dashboard & Socket Room Management Script ---
 
+
+// Example snippet to include inside your teacher.js on load
+async function loadTeacherData() {
+  try {
+    const response = await fetch('/api/current-user');
+    const data = await response.json();
+    
+    if (data.success && data.user) {
+      const assignedTopics = data.user.assignedTopics || ['default'];
+      
+      // Populate your teacher dashboard topic dropdown or list here
+      const topicSelect = document.getElementById('topicSelect'); // update with your actual element ID
+      if (topicSelect) {
+        topicSelect.innerHTML = '';
+        assignedTopics.forEach(topic => {
+          const option = document.createElement('option');
+          option.value = topic;
+          option.textContent = topic;
+          topicSelect.appendChild(option);
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load teacher session data:', err);
+  }
+}
+
+// Call this when the teacher dashboard loads
+document.addEventListener('DOMContentLoaded', loadTeacherData);
+
+
 // Fetch latest user details from backend to ensure assigned topics are always up to date
 async function refreshTeacherProfile() {
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');

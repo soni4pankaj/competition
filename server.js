@@ -10,7 +10,7 @@ const os = require('os');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const XLSX = require('xlsx');
-
+const session = require('express-session'); // <-- ADDED
 
 // Import Mongoose Models
 const User = require('./models/User');
@@ -24,8 +24,19 @@ const PUBLIC_URL = process.env.PUBLIC_URL || '';
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware & Static Files
+// --- ADD SESSION MIDDLEWARE HERE ---
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your_super_secret_competition_key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false } // Set to true if using HTTPS in production
+}));
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/sounds', express.static(path.join(__dirname, 'sounds')));
+
+
 
 let questionTimer = null;
 let questions = [];
@@ -42,9 +53,47 @@ mongoose.connect(process.env.MONGODB_URI)
 const adminRoutes = require('./routes/admin');
 app.use('/api/admin', adminRoutes);
 
+// Gatekeeper for Teachers and Admins
+function requireTeacherAuth(req, res, next) {
+  if (req.session && req.session.user && (req.session.user.role === 'teacher' || req.session.user.role === 'admin')) {
+    return next();
+  }
+  return res.redirect('/login'); // Redirect to login if unauthorized
+}
+
+// Gatekeeper for Participants joining an active room
+function requireParticipantSession(req, res, next) {
+  if (req.session && req.session.activeRoomCode) {
+    return next();
+  }
+  return res.redirect('/'); // Redirect back if they haven't joined a room session
+}
+
+// Get currently logged-in user session details (including assigned topics)
+app.get('/api/current-user', (req, res) => {
+  if (req.session && req.session.user) {
+    res.json({ success: true, user: req.session.user });
+  } else {
+    res.status(401).json({ success: false, message: 'Not authenticated' });
+  }
+});
+
+// Serve the participant quiz page when scanned via QR or visited
+app.get('/participant.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
+});
+
+// Also support a clean URL alias without the .html extension
+app.get('/participant', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
+});
+
+
+
+
 // Teacher dashboard
-app.get('/teacher-dashboard', (req, res) => {
-  res.sendFile(__dirname + '/public/teacher.html');
+app.get('/teacher-dashboard', requireTeacherAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
 });
 
 // 1. Admin: Create a new user with assigned topics array
@@ -123,6 +172,7 @@ app.put('/api/admin/users/:id', async (req, res) => {
 });
 
 // User Login Route
+// User Login Route
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -130,19 +180,39 @@ app.post('/api/login', async (req, res) => {
     if (!user) {
       return res.json({ success: false, message: 'Invalid credentials' });
     }
+
+    // --- SAVE USER TO SESSION ---
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+      assignedTopics: user.assignedTopics && user.assignedTopics.length > 0 ? user.assignedTopics : ['default']
+    };
+
     res.json({ 
       success: true, 
-      user: { 
-        id: user._id, 
-        username: user.username, 
-        role: user.role, 
-        assignedTopics: user.assignedTopics && user.assignedTopics.length > 0 ? user.assignedTopics : ['default'] 
-      } 
+      user: req.session.user 
     });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+// Public home/landing page
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
+
+// Protected Teacher dashboard route
+app.get('/teacher-dashboard', requireTeacherAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
+});
+
+// Protected Participant quiz page route
+app.get('/participant', requireParticipantSession, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
+});
+
 
 // Fetch Questions from MongoDB filtered by category
 app.get('/api/questions', async (req, res) => {
@@ -330,7 +400,8 @@ io.on('connection', (socket) => {
       baseUrl = `http://${localIP}:${PORT}`;
     }
 
-    const joinUrl = `${baseUrl}/participant.html?room=${roomId}`;
+	const joinUrl = `${baseUrl}/participant?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
+
     const qrImage = await QRCode.toDataURL(joinUrl);
 
     rooms[roomId] = {
