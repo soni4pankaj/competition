@@ -394,7 +394,7 @@ io.on('connection', (socket) => {
       baseUrl = process.env.PUBLIC_URL;
     } else if (reqHost && !reqHost.includes('localhost') && !reqHost.includes('127.0.0.1')) {
       const protocol = socket.handshake.headers['x-forwarded-proto'] || 'https';
-      baseUrl = `${protocol}://${reqHost}`;
+      baseUrl = `${protocol}://${reqHost}`.replace(/\/+$/, '');;
     } else {
       const localIP = getLocalIpAddress();
       baseUrl = `http://${localIP}:${PORT}`;
