@@ -394,13 +394,13 @@ io.on('connection', (socket) => {
       baseUrl = process.env.PUBLIC_URL;
     } else if (reqHost && !reqHost.includes('localhost') && !reqHost.includes('127.0.0.1')) {
       const protocol = socket.handshake.headers['x-forwarded-proto'] || 'https';
-      baseUrl = `${protocol}://${reqHost}`.replace(/\/+$/, '');
+      baseUrl = `${protocol}://${reqHost}`;
     } else {
       const localIP = getLocalIpAddress();
       baseUrl = `http://${localIP}:${PORT}`;
     }
 
-	const joinUrl = `${baseUrl}/participant?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
+	const joinUrl = `${baseUrl}participant?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
 
     const qrImage = await QRCode.toDataURL(joinUrl);
 
