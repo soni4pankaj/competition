@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 	// 1. Join Room / Register Button Action
+// 1. Join Room / Register Button Action
 	  if (joinBtn) {
 		joinBtn.addEventListener('click', () => {
 		  const roomId = roomInput.value.trim();
@@ -86,14 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		  currentRoomId = roomId;
 
+		  // ✅ Emit ONLY join_room for participants
 		  socket.emit('join_room', { roomId, name });
-		  socket.emit('join_teacher_lobby', { roomId, name });
 
 		  playerDisplayName.textContent = name;
 		  joinBox.classList.add('hidden');
 		  waitingBox.classList.remove('hidden');
 		});
 	  }
+  
   
   
   
