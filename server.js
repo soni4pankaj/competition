@@ -10,66 +10,94 @@ const os = require('os');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const XLSX = require('xlsx');
-const session = require('express-session'); // <-- ADDED
+const session = require('express-session');
 
-// Import Mongoose Models
+// Import Mongoose Models & Routes
 const User = require('./models/User');
 const Question = require('./models/Question');
+const Chapter = require('./models/Chapter');
+const adminRoutes = require('./routes/admin');
+const chapterRoutes = require('./routes/chapters');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: '*' } });
 
-const PUBLIC_URL = process.env.PUBLIC_URL || '';
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Middleware & Static Files
-// --- ADD SESSION MIDDLEWARE HERE ---
+// Middleware & Sessions
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your_super_secret_competition_key',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // Set to true if using HTTPS in production
+  cookie: { secure: false }
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use('/sounds', express.static(path.join(__dirname, 'sounds')));
 
-
+// Mount Routers
+app.use('/api/admin', adminRoutes);
+app.use('/api/chapters', chapterRoutes);
 
 let questionTimer = null;
 let questions = [];
 const rooms = {};
-let answeredParticipants = new Set(); // Track who answered the current question
+let answeredParticipants = new Set();
 
-// Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Successfully connected to MongoDB Atlas.'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+// Helper: Get local IP
+function getLocalIpAddress() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'localhost';
+}
 
-// --- REST API ENDPOINTS ---
+// Helper: Leaderboard sorting
+function getSortedLeaderboard(room) {
+  return Object.values(room.players).sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return a.totalTime - b.totalTime;
+  });
+}
 
-const adminRoutes = require('./routes/admin');
-app.use('/api/admin', adminRoutes);
-
-// Gatekeeper for Teachers and Admins
+// --- AUTHENTICATION GATEKEEPERS ---
 function requireTeacherAuth(req, res, next) {
   if (req.session && req.session.user && (req.session.user.role === 'teacher' || req.session.user.role === 'admin')) {
     return next();
   }
-  return res.redirect('/login'); // Redirect to login if unauthorized
+  return res.redirect('/login');
 }
 
-// Gatekeeper for Participants joining an active room
-function requireParticipantSession(req, res, next) {
-  if (req.session && req.session.activeRoomCode) {
-    return next();
-  }
-  return res.redirect('/'); // Redirect back if they haven't joined a room session
-}
+// --- REST API ENDPOINTS ---
 
-// Get currently logged-in user session details (including assigned topics)
+// Public Pages
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
+
+app.get('/participant.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
+});
+
+app.get('/participant', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
+});
+
+// Protected Teacher Dashboard
+app.get('/teacher-dashboard', requireTeacherAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
+});
+
+// Current User Session
 app.get('/api/current-user', (req, res) => {
   if (req.session && req.session.user) {
     res.json({ success: true, user: req.session.user });
@@ -78,25 +106,38 @@ app.get('/api/current-user', (req, res) => {
   }
 });
 
-// Serve the participant quiz page when scanned via QR or visited
-app.get('/participant.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
+// User Login Route
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.json({ success: false, message: 'Invalid credentials' });
+    }
+
+    req.session.user = {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+      assignedTopics: user.assignedTopics && user.assignedTopics.length > 0 ? user.assignedTopics : ['default']
+    };
+
+    res.json({ success: true, user: req.session.user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
-// Also support a clean URL alias without the .html extension
-app.get('/participant', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
+// Admin User Management API Routes
+app.get('/api/admin/users', async (req, res) => {
+  try {
+    const users = await User.find({}, '-password');
+    res.json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to fetch users' });
+  }
 });
 
-
-
-
-// Teacher dashboard
-app.get('/teacher-dashboard', requireTeacherAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
-});
-
-// 1. Admin: Create a new user with assigned topics array
 app.post('/api/admin/users', async (req, res) => {
   const { username, password, role, assignedTopics, assignedQuiz } = req.body;
   try {
@@ -111,12 +152,7 @@ app.post('/api/admin/users', async (req, res) => {
       topicsArray = ['default'];
     }
 
-    const newUser = new User({ 
-      username, 
-      password, 
-      role: role || 'user', 
-      assignedTopics: topicsArray 
-    });
+    const newUser = new User({ username, password, role: role || 'user', assignedTopics: topicsArray });
     await newUser.save();
     res.json({ success: true, message: 'User created successfully!' });
   } catch (err) {
@@ -124,17 +160,6 @@ app.post('/api/admin/users', async (req, res) => {
   }
 });
 
-// Get all users (excluding passwords)
-app.get('/api/admin/users', async (req, res) => {
-  try {
-    const users = await User.find({}, '-password');
-    res.json({ success: true, users });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch users' });
-  }
-});
-
-// Delete a user
 app.delete('/api/admin/users/:id', async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -144,7 +169,6 @@ app.delete('/api/admin/users/:id', async (req, res) => {
   }
 });
 
-// Admin: Update an existing user
 app.put('/api/admin/users/:id', async (req, res) => {
   const { username, password, role, assignedTopics, assignedQuiz } = req.body;
   try {
@@ -171,50 +195,7 @@ app.put('/api/admin/users/:id', async (req, res) => {
   }
 });
 
-// User Login Route
-// User Login Route
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const user = await User.findOne({ username, password });
-    if (!user) {
-      return res.json({ success: false, message: 'Invalid credentials' });
-    }
-
-    // --- SAVE USER TO SESSION ---
-    req.session.user = {
-      id: user._id,
-      username: user.username,
-      role: user.role,
-      assignedTopics: user.assignedTopics && user.assignedTopics.length > 0 ? user.assignedTopics : ['default']
-    };
-
-    res.json({ 
-      success: true, 
-      user: req.session.user 
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-});
-
-// Public home/landing page
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'index.html'));
-});
-
-// Protected Teacher dashboard route
-app.get('/teacher-dashboard', requireTeacherAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'teacher.html'));
-});
-
-// Protected Participant quiz page route
-app.get('/participant', requireParticipantSession, (req, res) => {
-  res.sendFile(path.join(__dirname, 'views', 'participant.html'));
-});
-
-
-// Fetch Questions from MongoDB filtered by category
+// Questions & Topics API
 app.get('/api/questions', async (req, res) => {
   try {
     const category = req.query.category || 'default';
@@ -231,7 +212,40 @@ app.get('/api/questions', async (req, res) => {
   }
 });
 
-// Delete a single question by ID
+app.get('/api/topics/:topicId/questions', async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const questionsList = await Question.find({ category: topicId });
+    res.json({ success: true, questions: questionsList });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/api/topics/:topicId/questions', async (req, res) => {
+  try {
+    const { topicId } = req.params;
+    const { question, options, answer, category, chapterId } = req.body;
+    
+    const lastQuestion = await Question.findOne().sort({ id: -1 });
+    const newId = lastQuestion ? lastQuestion.id + 1 : 1;
+
+    const newQuestion = new Question({
+      id: newId,
+      question,
+      options,
+      answer: parseInt(answer),
+      category: topicId || category || 'default',
+      chapterId: chapterId || null
+    });
+    
+    await newQuestion.save();
+    res.json({ success: true, message: 'Question added successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 app.delete('/api/questions/:id', async (req, res) => {
   try {
     await Question.findByIdAndDelete(req.params.id);
@@ -241,7 +255,6 @@ app.delete('/api/questions/:id', async (req, res) => {
   }
 });
 
-// Update a single question by ID
 app.put('/api/questions/:id', async (req, res) => {
   try {
     const { question, options, answer, category } = req.body;
@@ -257,166 +270,52 @@ app.put('/api/questions/:id', async (req, res) => {
   }
 });
 
-async function initQuestions() {
-  try {
-    questions = await Question.find().sort({ id: 1 });
-    if (questions.length === 0) {
-      const defaultQuestions = [
-        { id: 1, question: "Which planet is known as the Red Planet?", options: ["Earth", "Mars", "Jupiter", "Venus"], answer: 1, category: "default" }
-      ];
-      await Question.insertMany(defaultQuestions);
-      questions = await Question.find().sort({ id: 1 });
-    }
-  } catch (err) {
-    console.error('Error seeding initial questions:', err);
-  }
-}
-initQuestions();
-
-function getSortedLeaderboard(room) {
-  return Object.values(room.players).sort((a, b) => {
-    if (b.score !== a.score) {
-      return b.score - a.score; // Higher score comes first
-    }
-    return a.totalTime - b.totalTime; // If scores are tied, lower total time comes first
-  });
-}
-
-
-function getLocalIpAddress() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const net of interfaces[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        return net.address;
-      }
-    }
-  }
-  return 'localhost';
-}
-
-// --- Topic-Specific Question Routes ---
-
-// Get all questions for a specific topic
-app.get('/api/topics/:topicId/questions', async (req, res) => {
+// Bulk Upload Endpoint
+app.post('/api/topics/:topicId/bulk-upload', upload.single('file'), async (req, res) => {
   try {
     const { topicId } = req.params;
-    const questions = await Question.find({ category: topicId });
-    res.json({ success: true, questions });
+    const { chapterId } = req.body;
+    let questionsData = [];
+
+    if (req.file) {
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet);
+
+      const lastQuestion = await Question.findOne().sort({ id: -1 });
+      let nextId = lastQuestion ? lastQuestion.id + 1 : 1;
+
+      questionsData = rows.map((row) => ({
+        id: nextId++,
+        question: row.question || row.Question,
+        options: [
+          row.option1 || row.Option1 || '',
+          row.option2 || row.Option2 || '',
+          row.option3 || row.Option3 || '',
+          row.option4 || row.Option4 || ''
+        ],
+        answer: parseInt(row.answer !== undefined ? row.answer : row.Answer),
+        category: topicId,
+        chapterId: row.chapterId || row.ChapterId || chapterId || null
+      }));
+    }
+
+    if (questionsData.length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid questions found in uploaded file.' });
+    }
+
+    await Question.insertMany(questionsData);
+    res.json({ success: true, message: `Successfully uploaded ${questionsData.length} questions!` });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Failed to process bulk upload: ' + err.message });
   }
 });
 
-// Add a new question to a specific topic
-app.post('/api/topics/:topicId/questions', async (req, res) => {
-  try {
-    const { topicId } = req.params;
-    const { question, options, answer, category } = req.body;
-    
-    const lastQuestion = await Question.findOne().sort({ id: -1 });
-    const newId = lastQuestion ? lastQuestion.id + 1 : 1;
 
-    const newQuestion = new Question({
-      id: newId,
-      question: question,
-      options: options,
-      answer: parseInt(answer),
-      category: topicId || category || 'default'
-    });
-    
-    await newQuestion.save();
-    res.json({ success: true, message: 'Question added successfully!' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// Bulk Upload Endpoint (Supports Excel file upload)
-	// Bulk Upload Endpoint (Supports Excel file upload linked to a chapter or topic)
-	app.post('/api/topics/:topicId/bulk-upload', upload.single('file'), async (req, res) => {
-	  try {
-		const { topicId } = req.params;
-		const { chapterId } = req.body; // Capture chapterId from request
-		let questionsData = [];
-
-		if (req.file) {
-		  const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-		  const sheetName = workbook.SheetNames[0];
-		  const sheet = workbook.Sheets[sheetName];
-		  const rows = XLSX.utils.sheet_to_json(sheet);
-
-		  const lastQuestion = await Question.findOne().sort({ id: -1 });
-		  let nextId = lastQuestion ? lastQuestion.id + 1 : 1;
-
-		  questionsData = rows.map((row) => ({
-			id: nextId++,
-			question: row.question || row.Question,
-			options: [
-			  row.option1 || row.Option1 || '',
-			  row.option2 || row.Option2 || '',
-			  row.option3 || row.Option3 || '',
-			  row.option4 || row.Option4 || ''
-			],
-			answer: parseInt(row.answer !== undefined ? row.answer : row.Answer),
-			category: topicId,
-		// Pull chapterId from Excel row if present, otherwise fall back to request body dropdown
-			chapterId: row.chapterId || row.ChapterId || chapterId || null
-		}));
-		}
-
-		if (questionsData.length === 0) {
-		  return res.status(400).json({ success: false, message: 'No valid questions found in uploaded file.' });
-		}
-
-		await Question.insertMany(questionsData);
-		res.json({ success: true, message: `Successfully uploaded ${questionsData.length} questions!` });
-	  } catch (err) {
-		res.status(500).json({ success: false, message: 'Failed to process bulk upload: ' + err.message });
-	  }
-	});
-
-
-// SOCKET.IO REAL-TIME GAME LOGIC
+// --- SOCKET.IO REAL-TIME GAME LOGIC ---
 io.on('connection', (socket) => {
   
-  socket.on('create_room', async (data) => {
-    const roomId = typeof data === 'object' ? data.roomId : data;
-    const mode = typeof data === 'object' ? data.mode : 'manual';
-
-    questions = await Question.find().sort({ id: 1 });
-    socket.join(roomId);
-
-    const reqHost = socket.handshake.headers.host;
-    let baseUrl;
-
-    if (process.env.PUBLIC_URL) {
-      baseUrl = process.env.PUBLIC_URL;
-    } else if (reqHost && !reqHost.includes('localhost') && !reqHost.includes('127.0.0.1')) {
-      const protocol = socket.handshake.headers['x-forwarded-proto'] || 'https';
-      baseUrl = `${protocol}://${reqHost}`;
-    } else {
-      const localIP = getLocalIpAddress();
-      baseUrl = `http://${localIP}:${PORT}`;
-    }
-
-	const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
-	
-	const joinUrl = `${cleanBaseUrl}/participant?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
-	console.log("Generated Participant QR URL:", joinUrl);
-
-    const qrImage = await QRCode.toDataURL(joinUrl);
-
-    rooms[roomId] = {
-      currentQuestion: 0,
-      players: {},
-      answers: {},
-      mode: mode
-    };
-
-    socket.emit('room_created', { roomId, qrCode: qrImage });
-  });
-
   socket.on('join_room', ({ roomId, name }) => {
     const room = rooms[roomId];
     if (!room) return socket.emit('error_msg', 'Room not found! Please wait for host to create room.');
@@ -429,28 +328,21 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('player_list_update', Object.values(room.players));
   });
 
-  // --- TEACHER & RAPID-FIRE / PAPER MODE SOCKET HANDLERS ---
-	socket.on('create_teacher_room', async ({ roomId, category, mode, chapterId }) => {
+  socket.on('create_teacher_room', async ({ roomId, category, mode, chapterId }) => {
     socket.join(roomId);
 
     let fetchedQuestions = [];
 
-    // 1. If a chapter was selected, look for questions linked to this chapterId
     if (chapterId) {
       fetchedQuestions = await Question.find({ chapterId });
     }
-
-    // 2. Fall back to category/topic questions if no chapter-specific questions found
     if (fetchedQuestions.length === 0) {
       fetchedQuestions = await Question.find({ category });
     }
-
-    // 3. Fall back to default questions if category is also empty
     if (fetchedQuestions.length === 0) {
       fetchedQuestions = await Question.find({ category: 'default' });
     }
 
-    // Fetch chapter reading text
     let chapterText = "Please read the assigned material carefully before the assessment begins.";
     if (chapterId) {
       const foundChapter = await Chapter.findOne({ chapterId });
@@ -459,9 +351,15 @@ io.on('connection', (socket) => {
       }
     }
 
+    // Determine Host URL safely and clean trailing slashes to prevent double //
     const reqHost = socket.handshake.headers.host;
-    let baseUrl = process.env.PUBLIC_URL || `http://${getLocalIpAddress()}:${PORT}`;
-    const joinUrl = `${baseUrl}/participant.html?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
+    const protocol = socket.handshake.headers['x-forwarded-proto'] || 'http';
+    const rawBaseUrl = process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || (reqHost && !reqHost.includes('localhost') && !reqHost.includes('127.0.0.1') ? `${protocol}://${reqHost}` : `http://${getLocalIpAddress()}:${PORT}`);
+    
+    const cleanBaseUrl = rawBaseUrl.replace(/\/+$/, '');
+    const joinUrl = `${cleanBaseUrl}/participant.html?room=${roomId}&category=${encodeURIComponent(category)}&mode=${mode}&total=${fetchedQuestions.length}`;
+    
+    console.log("Cleaned Participant QR URL:", joinUrl);
     const qrImage = await QRCode.toDataURL(joinUrl);
 
     const existingPlayers = rooms[roomId] ? rooms[roomId].players : {};
@@ -470,7 +368,7 @@ io.on('connection', (socket) => {
       category,
       mode, 
       questions: fetchedQuestions,
-      chapterText: chapterText,
+      chapterText,
       currentQuestionIndex: 0,
       players: existingPlayers, 
       answers: {},
@@ -479,7 +377,6 @@ io.on('connection', (socket) => {
 
     socket.emit('room_ready', { qrCode: qrImage, roomId });
   });
-  
   
   socket.on('join_teacher_lobby', ({ roomId, name }) => {
     const room = rooms[roomId];
@@ -496,7 +393,7 @@ io.on('connection', (socket) => {
     });
   });
 
-	socket.on('start_teacher_quiz', async (roomId) => {
+  socket.on('start_teacher_quiz', async (roomId) => {
     let room = rooms[roomId];
     if (!room) return;
 
@@ -507,15 +404,13 @@ io.on('connection', (socket) => {
       }
     }
 
-    // Check if it's a chapter-based mode needing the 5-minute reading timer (300 seconds)
     if (room.mode === 'chapter_rapid' || room.mode === 'chapter_paper') {
       room.status = 'reading';
       io.to(roomId).emit('start_reading_phase', {
         chapterText: room.chapterText,
-        readingTime: 300 // 300 seconds = 5 minutes
+        readingTime: 300 
       });
 
-      // Automatically trigger actual quiz after 5 minutes (300,000 milliseconds)
       setTimeout(() => {
         beginActualQuiz(roomId);
       }, 300000);
@@ -547,7 +442,8 @@ io.on('connection', (socket) => {
       });
     }
   }
-socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
+
+  socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
 
@@ -561,19 +457,13 @@ socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
     const isCorrect = optionIndex === correctAnswer;
 
     const elapsedSeconds = Math.floor((Date.now() - (room.currentQuestionStartTime || Date.now())) / 1000);
-    
-    // Add elapsed time to participant's cumulative total time
     room.players[socket.id].totalTime = (room.players[socket.id].totalTime || 0) + elapsedSeconds;
 
     let earnedPoints = 0;
     if (isCorrect) {
-      if (elapsedSeconds <= 10) {
-        earnedPoints = 15;
-      } else if (elapsedSeconds <= 15) {
-        earnedPoints = 10;
-      } else {
-        earnedPoints = 5;
-      }
+      if (elapsedSeconds <= 10) earnedPoints = 15;
+      else if (elapsedSeconds <= 15) earnedPoints = 10;
+      else earnedPoints = 5;
       room.players[socket.id].score += earnedPoints;
     } else {
       earnedPoints = -5;
@@ -597,7 +487,6 @@ socket.on('submit_rapid_answer', ({ roomId, optionIndex }) => {
     }
   });
 
-  
   socket.on('submit_paper_answers', ({ roomId, answers }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
@@ -622,16 +511,13 @@ function runRapidFireQuestion(roomId) {
   const room = rooms[roomId];
   if (!room || room.status !== 'active') return;
 
-	// Clear tracking set for the new question round
   answeredParticipants.clear();
   
   if (room.currentQuestionIndex >= room.questions.length) {
-	if (questionTimer) clearInterval(questionTimer);
-	  const finalLeaderboard = getSortedLeaderboard(room);
-//    io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
-	io.to(roomId).emit('teacher_leaderboard_update', finalLeaderboard);
-    io.to(roomId).emit('participant_final_results', finalLeaderboard); // Send final results to participants
-	
+    if (questionTimer) clearInterval(questionTimer);
+    const finalLeaderboard = getSortedLeaderboard(room);
+    io.to(roomId).emit('teacher_leaderboard_update', finalLeaderboard);
+    io.to(roomId).emit('participant_final_results', finalLeaderboard);
     io.to(roomId).emit('quiz_ended');
     room.status = 'ended';
     return;
@@ -639,10 +525,9 @@ function runRapidFireQuestion(roomId) {
 
   const q = room.questions[room.currentQuestionIndex];
   room.currentQuestionIndex++;
+  room.currentQuestionStartTime = Date.now();
 
-	room.currentQuestionStartTime = Date.now(); // Record start timestamp
-
-	io.to(roomId).emit('next_rapid_question', {
+  io.to(roomId).emit('next_rapid_question', {
     questionIndex: room.currentQuestionIndex,
     total: room.questions.length,
     question: q.question || q.questionText,
@@ -666,52 +551,39 @@ function runRapidFireQuestion(roomId) {
   }, 1000);
 }
 
-const PORT = process.env.PORT || 4000;
-const HOST = '0.0.0.0';
-
-server.listen(PORT, HOST, () => {
-  const localIP = getLocalIpAddress();
-  console.log('----------------------------------------------------');
-  console.log(`Server running locally at: http://localhost:${PORT}`);
-  console.log(`Network Join Link: http://${localIP}:${PORT}/participant.html`);
-  console.log('----------------------------------------------------');
-});
-
-// Function to automatically create the initial Admin user
+// Admin Seeder
 async function seedAdminUser() {
   try {
     const adminExists = await User.findOne({ role: 'admin' });
     if (!adminExists) {
       await User.create({
         username: 'admin',
-        password: 'adminpassword', // You can change this to your desired password
+        password: 'adminpassword',
         role: 'admin',
         assignedTopics: ['default', 'banking', 'finance']
       });
-      console.log('----------------------------------------------------');
       console.log('✅ Initial Admin created successfully!');
-      console.log('   Username: admin');
-      console.log('   Password: adminpassword');
-      console.log('----------------------------------------------------');
     }
   } catch (err) {
     console.error('Error seeding admin user:', err);
   }
 }
 
+// --- INITIALIZE SERVER & DB CONNECTION ONCE ---
+const PORT = process.env.PORT || 4000;
+const HOST = '0.0.0.0';
 
-const chapterRoutes = require('./routes/chapters'); // <-- Add this
-app.use('/api/chapters', chapterRoutes);           // <-- Add this
-
-
-
-// Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('Successfully connected to MongoDB Atlas.');
-    seedAdminUser(); // Call the admin seeder here
+    seedAdminUser();
+    
+    server.listen(PORT, HOST, () => {
+      const localIP = getLocalIpAddress();
+      console.log('----------------------------------------------------');
+      console.log(`Server running locally at: http://localhost:${PORT}`);
+      console.log(`Network Join Link: http://${localIP}:${PORT}/participant.html`);
+      console.log('----------------------------------------------------');
+    });
   })
   .catch((err) => console.error('MongoDB connection error:', err));
-  
-const Chapter = require('./models/Chapter');
-
