@@ -400,8 +400,10 @@ io.on('connection', (socket) => {
       baseUrl = `http://${localIP}:${PORT}`;
     }
 
-	const cleanBaseUrl = `${baseUrl}participant?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
-	const joinUrl = cleanBaseUrl.replace(/\/+$/, '');
+	const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
+	
+	const joinUrl = `${cleanBaseUrl}/participant?room=${roomId}&category=${category}&mode=${mode}&total=${fetchedQuestions.length}`;
+	console.log("Generated Participant QR URL:", joinUrl);
 
     const qrImage = await QRCode.toDataURL(joinUrl);
 
