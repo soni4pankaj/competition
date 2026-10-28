@@ -487,7 +487,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('submit_paper_answers', ({ roomId, answers }) => {
+socket.on('submit_paper_answers', ({ roomId, answers, timeTaken }) => {
     const room = rooms[roomId];
     if (!room || !room.players[socket.id]) return;
 
@@ -500,13 +500,17 @@ io.on('connection', (socket) => {
     });
 
     room.players[socket.id].score = score;
+    room.players[socket.id].totalTime = timeTaken || 0; // Save actual time taken
+
     io.to(roomId).emit('lobby_update', { players: Object.values(room.players) });
     io.to(roomId).emit('teacher_leaderboard_update', getSortedLeaderboard(room));
-    socket.emit('paper_submitted_success', { score, total: room.questions.length });
-  });
-
-});
-
+    socket.emit('paper_submitted_success', { 
+      score, 
+      total: room.questions.length, 
+      timeTaken: room.players[socket.id].totalTime 
+    });
+  });  
+}); 
 function runRapidFireQuestion(roomId) {
   const room = rooms[roomId];
   if (!room || room.status !== 'active') return;

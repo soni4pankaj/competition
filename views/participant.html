@@ -335,6 +335,7 @@
     let roomGameMode = 'manual';
     let paperInterval = null;
     let readingInterval = null;
+	let paperStartTime = 0; // Add this near your other let variables
 
     function playSoundEffect(audioElement) {
       if (!audioElement) return;
@@ -525,6 +526,9 @@
       scoreboardBox.classList.add('hidden');
       questionBox.classList.remove('hidden');
 
+	// ⏱️ Start tracking paper exam elapsed time
+      paperStartTime = Date.now();
+	  
       if (timerContainer) { timerContainer.style.display = 'none'; }
       if (paperTimerContainer) {
         paperTimerContainer.classList.remove('hidden');
@@ -590,27 +594,38 @@
           return;
         }
 
-        socket.emit('submit_paper_answers', { roomId: currentRoomId, answers: userAnswers });
+		// Calculate total seconds taken for the paper exam
+        const timeTaken = Math.floor((Date.now() - paperStartTime) / 1000);
+		
+		socket.emit('submit_paper_answers', { 
+          roomId: currentRoomId, 
+          answers: userAnswers, 
+          timeTaken: timeTaken		  
+		});
       };
     });
 
-    socket.on('paper_submitted_success', ({ score, total }) => {
-      if (paperInterval) clearInterval(paperInterval);
-      if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
+	// Update paper success listener to populate the time element
+	socket.on('paper_submitted_success', ({ score, total, timeTaken }) => {
+	  if (paperInterval) clearInterval(paperInterval);
+	  if (paperTimerContainer) paperTimerContainer.classList.add('hidden');
 
-      questionBox.classList.add('hidden');
-      scoreboardBox.classList.remove('hidden');
-      
-      const manualNotice = document.getElementById('manual-wait-notice');
-      if (manualNotice) manualNotice.classList.add('hidden');
+	  questionBox.classList.add('hidden');
+	  scoreboardBox.classList.remove('hidden');
+	  
+	  const manualNotice = document.getElementById('manual-wait-notice');
+	  if (manualNotice) manualNotice.classList.add('hidden');
 
-      const myScoreEl = document.getElementById('my-score');
-      if (myScoreEl) myScoreEl.textContent = score;
+	  const myScoreEl = document.getElementById('my-score');
+	  if (myScoreEl) myScoreEl.textContent = score;
 
-      answerStatus.textContent = `Quiz Completed! You scored ${score} out of ${total * 10} points.`;
-      const scoreboardTitle = document.getElementById('scoreboard-title');
-      if (scoreboardTitle) scoreboardTitle.textContent = "Exam Completed Successfully";
-    });
+	  const myTotalTimeEl = document.getElementById('my-total-time');
+	  if (myTotalTimeEl) myTotalTimeEl.textContent = timeTaken || 0;
+
+	  answerStatus.textContent = `Quiz Completed! You scored ${score} out of ${total * 15} points.`;
+	  const scoreboardTitle = document.getElementById('scoreboard-title');
+	  if (scoreboardTitle) scoreboardTitle.textContent = "Exam Completed Successfully";
+	});
 
     socket.on('answer_confirmed', ({ isCorrect } = {}) => {
       if (isCorrect === true) {
